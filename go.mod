@@ -7,6 +7,7 @@ require (
 	github.com/aaronland/gocloud v1.0.0
 	github.com/sfomuseum/go-flags v0.11.0
 	gocloud.dev v0.43.0
+	golang.org/x/crypto v0.41.0
 )
 
 require (
