@@ -94,8 +94,15 @@ func GetRecordHandler(opts *GetRecordHandlerOptions) (http.Handler, error) {
 		rec, err := pds.GetRecord(ctx, opts.RecordsDatabase, repo, collection, rkey)
 
 		if err != nil {
-			logger.Error("Record not found", "error", err)
-			http.Error(rsp, "Not found", http.StatusNotFound)
+
+			if err == pds.ErrNotFound {
+				logger.Error("Record not found")
+				http.Error(rsp, "Not found", http.StatusNotFound)
+			} else {
+				logger.Error("Failed to retrieve record", "error", err)
+				http.Error(rsp, "Internal server error", http.StatusInternalServerError)
+			}
+
 			return
 		}
 

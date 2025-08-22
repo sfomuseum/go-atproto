@@ -3,6 +3,10 @@ package pds
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"iter"
+	"path/filepath"
+	"sync"
 
 	"github.com/aaronland/gocloud/blob/bucket"
 	"gocloud.dev/blob"
@@ -11,6 +15,45 @@ import (
 type BlobUsersDatabase struct {
 	UsersDatabase
 	bucket *blob.Bucket
+}
+
+var blob_users_register_mu = new(sync.RWMutex)
+var blob_users_register_map = map[string]bool{}
+
+func init() {
+
+	ctx := context.Background()
+	err := RegisterBlobUsersSchemes(ctx)
+
+	if err != nil {
+		panic(err)
+	}
+}
+
+// RegisterBlobUsersSchemes will explicitly register all the schemes associated with ....
+func RegisterBlobUsersSchemes(ctx context.Context) error {
+
+	blob_users_register_mu.Lock()
+	defer blob_users_register_mu.Unlock()
+
+	for _, scheme := range blob.DefaultURLMux().BucketSchemes() {
+
+		_, exists := blob_users_register_map[scheme]
+
+		if exists {
+			continue
+		}
+
+		err := RegisterUsersDatabase(ctx, scheme, NewBlobUsersDatabase)
+
+		if err != nil {
+			return fmt.Errorf("Failed to register blob users database for '%s', %w", scheme, err)
+		}
+
+		blob_users_register_map[scheme] = true
+	}
+
+	return nil
 }
 
 func NewBlobUsersDatabase(ctx context.Context, uri string) (UsersDatabase, error) {
@@ -30,7 +73,19 @@ func NewBlobUsersDatabase(ctx context.Context, uri string) (UsersDatabase, error
 
 func (db *BlobUsersDatabase) GetUser(ctx context.Context, did string) (*User, error) {
 
-	r, err := db.bucket.NewReader(ctx, did, nil)
+	path := db.userPath(did)
+
+	exists, err := db.bucket.Exists(ctx, path)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
+		return nil, ErrNotFound
+	}
+
+	r, err := db.bucket.NewReader(ctx, path, nil)
 
 	if err != nil {
 		return nil, err
@@ -62,13 +117,23 @@ func (db *BlobUsersDatabase) DeleteUser(ctx context.Context, user *User) error {
 	return db.bucket.Delete(ctx, user.DID)
 }
 
+func (db *BlobUsersDatabase) ListUsers(ctx context.Context) iter.Seq2[*User, error] {
+
+	return func(yield func(*User, error) bool) {
+		yield(nil, ErrNotImplemented)
+		return
+	}
+}
+
 func (db *BlobUsersDatabase) Close() error {
 	return db.bucket.Close()
 }
 
 func (db *BlobUsersDatabase) writeUser(ctx context.Context, user *User) error {
 
-	wr, err := db.bucket.NewWriter(ctx, user.DID, nil)
+	path := db.userPath(user.DID)
+
+	wr, err := db.bucket.NewWriter(ctx, path, nil)
 
 	if err != nil {
 		return err
@@ -82,4 +147,10 @@ func (db *BlobUsersDatabase) writeUser(ctx context.Context, user *User) error {
 	}
 
 	return wr.Close()
+}
+
+func (db *BlobUsersDatabase) userPath(did string) string {
+	fname := fmt.Sprintf("%s.json", did)
+	path := filepath.Join("users", fname)
+	return path
 }
