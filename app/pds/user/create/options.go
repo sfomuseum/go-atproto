@@ -9,6 +9,8 @@ import (
 
 type RunOptions struct {
 	UsersDatabaseURI string `json:"users_database_uri"`
+	Handle           string
+	Host             string
 }
 
 func OptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, error) {
@@ -17,6 +19,8 @@ func OptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, err
 
 	opts := &RunOptions{
 		UsersDatabaseURI: users_database_uri,
+		Handle:           handle,
+		Host:             host,
 	}
 
 	return opts, nil

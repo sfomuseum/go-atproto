@@ -18,7 +18,7 @@ func main() {
 
 	flag.Parse()
 
-	d, _, err := did.NewDID(host, name)
+	d, _, err := did.NewDID(name, host)
 
 	if err != nil {
 		log.Fatalf("Failed to create DID, %v", err)

@@ -11,6 +11,8 @@ import (
 	"io"
 	"strings"
 
+	"log/slog"
+
 	"github.com/fxamacker/cbor/v2"
 	"github.com/multiformats/go-multibase"
 )
@@ -67,14 +69,15 @@ func (d *DID) PublicKey(suffix string) ([]byte, error) {
 		}
 
 		key_mb := m.PublicKeyMultibase
+		key_mb = strings.TrimLeft(key_mb, fmt.Sprintf("%s:", DID_KEY))
 
 		_, body, err := multibase.Decode(key_mb)
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to decode multibase, %w", err)
 		}
 
-		return body, nil
+		return body[2:], nil
 	}
 
 	return nil, fmt.Errorf("Key not found")
@@ -104,7 +107,7 @@ type GenesisOperationSigned struct {
 	Signature string `cbor:"sig"`
 }
 
-func NewDID(host string, name string) (*DID, ed25519.PrivateKey, error) {
+func NewDID(handle string, host string) (*DID, ed25519.PrivateKey, error) {
 
 	// https://web.plc.directory/spec/v0.1/did-plc
 	// In pseudo-code: did:plc:${base32Encode(sha256(createOp)).slice(0,24)}
@@ -131,7 +134,7 @@ func NewDID(host string, name string) (*DID, ed25519.PrivateKey, error) {
 		RotationKeys: []string{
 			fmt.Sprintf("%s:%s", DID_KEY, public_b64),
 		},
-		AlsoKnownAs: []string{fmt.Sprintf("at://%s", name)},
+		AlsoKnownAs: []string{fmt.Sprintf("at://%s", handle)},
 		Services: map[string]GenesisOperationService{
 			"atproto_pds": {
 				Type:     "AtprotoPersonalDataServer",
@@ -197,25 +200,23 @@ func NewDID(host string, name string) (*DID, ed25519.PrivateKey, error) {
 	}
 
 	// START OF code for sanity-checking the multibase encoding
-	/*
 
-		_, body, err := multibase.Decode(public_mb)
+	_, body, err := multibase.Decode(public_mb)
 
-		if err != nil {
-			return nil, nil, err
-		}
+	if err != nil {
+		return nil, nil, err
+	}
 
-		if len(body) < 2 {
-			return nil, nil, fmt.Errorf("Decode key too short")
-		}
+	if len(body) < 2 {
+		return nil, nil, fmt.Errorf("Decode key too short")
+	}
 
-		pk := ed25519.PublicKey(body[2:])
+	pk := ed25519.PublicKey(body[2:])
 
-		if !pk.Equal(public_key) {
-			return nil, nil, fmt.Errorf("Failed to encode/decode multibase public key")
-		}
+	if !pk.Equal(public_key) {
+		return nil, nil, fmt.Errorf("Failed to encode/decode multibase public key")
+	}
 
-	*/
 	// END OF code for sanity-checking the multibase encoding
 
 	did_id := fmt.Sprintf("%s:%s", DID_PLC, str_did)

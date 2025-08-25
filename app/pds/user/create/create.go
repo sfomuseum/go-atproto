@@ -3,6 +3,7 @@ package create
 import (
 	"context"
 	"flag"
+	"fmt"
 	_ "log/slog"
 
 	"github.com/sfomuseum/go-atproto/pds"
@@ -34,7 +35,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	defer users_db.Close()
 
-	u, err := pds.CreateUser(ctx)
+	u, err := pds.CreateUser(ctx, opts.Handle, opts.Host)
 
 	if err != nil {
 		return err
@@ -46,5 +47,6 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		return err
 	}
 
+	fmt.Printf("New account created with DID '%s'\n", u.DID)
 	return nil
 }
