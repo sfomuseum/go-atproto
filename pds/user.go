@@ -24,6 +24,10 @@ func GetUser(ctx context.Context, db UsersDatabase, did string) (*User, error) {
 	return db.GetUser(ctx, did)
 }
 
+func GetUserWithHandle(ctx context.Context, db UsersDatabase, handle string) (*User, error) {
+	return db.GetUserWithHandle(ctx, handle)
+}
+
 func AddUser(ctx context.Context, db UsersDatabase, user *User) error {
 
 	now := time.Now()
