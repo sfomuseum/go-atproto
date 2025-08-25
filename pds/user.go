@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"os"
+
 	"github.com/sfomuseum/go-atproto/did"
 )
 
@@ -27,6 +29,8 @@ func CreateUser(ctx context.Context, host string, name string) (*User, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create new DID, %w", err)
 	}
+
+	d.Marshal(os.Stdout)
 
 	pub_key, err := d.PublicKey("#atproto")
 

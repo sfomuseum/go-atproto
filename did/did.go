@@ -11,8 +11,6 @@ import (
 	"io"
 	"strings"
 
-	"log/slog"
-
 	"github.com/fxamacker/cbor/v2"
 	"github.com/multiformats/go-multibase"
 )

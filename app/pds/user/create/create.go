@@ -35,7 +35,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	defer users_db.Close()
 
-	u, err := pds.CreateUser(ctx, opts.Handle, opts.Host)
+	u, err := pds.CreateUser(ctx, opts.Host, opts.Handle)
 
 	if err != nil {
 		return err
