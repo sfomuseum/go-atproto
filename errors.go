@@ -1,4 +1,4 @@
-package pds
+package atproto
 
 import (
 	"errors"

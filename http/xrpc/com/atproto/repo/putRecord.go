@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/aaronland/go-http/v3/slog"
-	"github.com/sfomuseum/go-pds"
+	"github.com/sfomuseum/go-atproto/pds"
 )
 
 const PutRecordHandlerURI string = "/xrpc/com.atproto.repo.putRecord"

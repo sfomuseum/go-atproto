@@ -7,7 +7,8 @@ import (
 
 	"github.com/aaronland/go-http/v3/sanitize"
 	"github.com/aaronland/go-http/v3/slog"
-	"github.com/sfomuseum/go-pds"
+	"github.com/sfomuseum/go-atproto"
+	"github.com/sfomuseum/go-atproto/pds"
 )
 
 const GetRecordHandlerURI string = "/xrpc/com.atproto.repo.getRecord"
@@ -95,7 +96,7 @@ func GetRecordHandler(opts *GetRecordHandlerOptions) (http.Handler, error) {
 
 		if err != nil {
 
-			if err == pds.ErrNotFound {
+			if err == atproto.ErrNotFound {
 				logger.Error("Record not found")
 				http.Error(rsp, "Not found", http.StatusNotFound)
 			} else {
