@@ -15,7 +15,6 @@ import (
 )
 
 // https://atproto.com/specs/did
-// https://atproto.com/specs/handle#handle-resolution
 
 // For reference, this is what Blacksky does:
 // https://github.com/blacksky-algorithms/rsky/blob/main/rsky-pds/src/plc/operations.rs#L50C5-L58C46
@@ -27,9 +26,6 @@ type NewDIDResult struct {
 	PlcOperation PlcOperationSigned
 	PrivateKey   *did.PrivKey
 }
-
-// https://github.com/bluesky-social/indigo/blob/main/atproto/identity/identity.go#L42	<-- ParseIdentity (from DIDDoc)
-// https://github.com/bluesky-social/indigo/blob/8be102876fb7e638aa4c9ed6c9d4991ca19a0973/atproto/identity/diddoc.go#L7	<-- DIDDocument
 
 func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, error) {
 
@@ -100,13 +96,13 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 		Signature:    sig_b64,
 	}
 
-	signed_b, err := enc_mode.Marshal(signed_op)
+	signed_enc, err := enc_mode.Marshal(signed_op)
 
 	if err != nil {
 		return nil, fmt.Errorf("signed CBOR marshal: %w", err)
 	}
 
-	hash := sha256.Sum256(signed_b)
+	hash := sha256.Sum256(signed_enc)
 
 	b32_enc := base32.StdEncoding.WithPadding(base32.NoPadding)
 	hash_b32 := b32_enc.EncodeToString(hash[:]) // 52 chars
@@ -124,8 +120,6 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse plc did, %w", err)
 	}
-
-	// Update to use indigo/atproto/identity.DidDocument
 
 	did := &identity.DIDDocument{
 		DID:         syntax.DID(did_id),
@@ -146,8 +140,6 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 			},
 		},
 	}
-
-	//
 
 	rsp := &NewDIDResult{
 		DID:          did,
