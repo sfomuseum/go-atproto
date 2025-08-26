@@ -189,7 +189,7 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 				Id:                 fmt.Sprintf("%s#atproto", did_id),
 				Type:               "Multikey",
 				Controller:         did_id,
-				PublicKeyMultibase: fmt.Sprintf("%s:%s", DID_KEY, public_mb),
+				PublicKeyMultibase: verification_key,
 			},
 		},
 		// RotationKeys: unsigned.RotationKeys,
@@ -203,7 +203,8 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 		},
 	}
 
-	//
+	// Generate and sign a new CreateOperation blob
+	// 
 
 	unsigned_create_op := CreateOperation{
 		Type:        "create",

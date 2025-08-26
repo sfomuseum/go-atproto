@@ -23,12 +23,12 @@ type GenesisOperationSigned struct {
 }
 
 type CreateOperation struct {
-	Type        string `json:"type"`
-	SigningKey  string `json:"signingKey"`
-	RecoveryKey string `json:"recoveryKey"`
-	Handle      string `json:"handle"`
-	Service     string `json:"service"`
-	Prev        any    `json:"prev"`
+	Type        string `cbor:"type" json:"type"`
+	SigningKey  string `cbor:"signingKey" json:"signingKey"`
+	RecoveryKey string `cbor:"recoveryKey" json:"recoveryKey"`
+	Handle      string `cbor:"handle" json:"handle"`
+	Service     string `cbor:"service" json:"service"`
+	Prev        any    `cbor:"prev" json:"prev"`
 }
 
 type CreateOperationSigned struct {
