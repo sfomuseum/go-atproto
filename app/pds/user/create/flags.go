@@ -9,7 +9,7 @@ import (
 var users_database_uri string
 
 var handle string
-var host string
+var service string
 var verbose bool
 
 func DefaultFlagSet() *flag.FlagSet {
@@ -18,7 +18,7 @@ func DefaultFlagSet() *flag.FlagSet {
 
 	fs.StringVar(&users_database_uri, "user-database-uri", "mem://", "A valid gocloud.dev/blob.Bucket URI.")
 	fs.StringVar(&handle, "handle", "", "The handle name for the new account.")
-	fs.StringVar(&host, "host", "", "The host name for the new account.")
+	fs.StringVar(&service, "service", "", "The service name for the new account.")
 	fs.BoolVar(&verbose, "verbose", false, "Enable verbose (debug) logging.")
 	return fs
 }

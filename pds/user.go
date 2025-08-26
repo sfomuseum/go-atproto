@@ -5,18 +5,19 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/sfomuseum/go-atproto/plc"
 	"github.com/sfomuseum/go-atproto/plc/api"
 )
 
 type User struct {
-	Id           string   `json:"id"`
-	DID          *plc.DID `json:"did"`
-	PrivateKey   string   `json:"private_key"`
-	Handle       string   `json:"handle"`
-	Aliases      []*Alias `json:"aliases"`
-	Created      int64    `json:"created"`
-	LastModified int64    `json:"lastmodified"`
+	Id           string                `json:"id"`
+	DID          *identity.DIDDocument `json:"did"`
+	PrivateKey   string                `json:"private_key"`
+	Handle       string                `json:"handle"`
+	Aliases      []*Alias              `json:"aliases"`
+	Created      int64                 `json:"created"`
+	LastModified int64                 `json:"lastmodified"`
 }
 
 func CreateUser(ctx context.Context, host string, handle string) (*User, error) {
@@ -29,9 +30,9 @@ func CreateUser(ctx context.Context, host string, handle string) (*User, error) 
 
 	did := rsp.DID
 
-	//
+	id := did.DID.String()
 
-	err = api.Create(ctx, did.Id, rsp.CreateOperation)
+	err = api.Create(ctx, id, rsp.PlcOperation)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create PLC for DID, %w", err)
@@ -40,7 +41,7 @@ func CreateUser(ctx context.Context, host string, handle string) (*User, error) 
 	// To do: Private key, wut??
 
 	u := &User{
-		Id:     did.Id,
+		Id:     id,
 		DID:    did,
 		Handle: handle,
 	}

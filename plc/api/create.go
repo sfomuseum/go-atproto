@@ -23,8 +23,9 @@ type createPlcError struct {
 }
 
 // https://github.com/bluesky-social/indigo/blob/main/plc/client.go#L61
+// https://github.com/did-method-plc/did-method-plc/blob/944a9ca36dd06b11630ec4d069c1b70fc6961ccf/website/spec/plc-server-openapi3.yaml#L244
 
-func Create(ctx context.Context, str_did string, op plc.CreateOperationSigned) error {
+func Create(ctx context.Context, str_did string, op plc.PlcOperationSigned) error {
 
 	enc_op, err := json.Marshal(op)
 

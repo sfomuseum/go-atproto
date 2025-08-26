@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/sfomuseum/go-atproto/plc"
+	"github.com/bluesky-social/indigo/atproto/identity"
 )
 
 // https://web.plc.directory/api/redoc#operation/ResolveDid
 
-func ResolveDID(ctx context.Context, str_did string) (*plc.DID, error) {
+func ResolveDID(ctx context.Context, str_did string) (*identity.DIDDocument, error) {
 
 	u := NewURL()
 	u.Path = fmt.Sprintf("/%s", str_did)
@@ -34,14 +34,14 @@ func ResolveDID(ctx context.Context, str_did string) (*plc.DID, error) {
 		return nil, fmt.Errorf("Request failed with error code %d %s", rsp.StatusCode, rsp.Status)
 	}
 
-	var d *plc.DID
+	var doc *identity.DIDDocument
 
 	dec := json.NewDecoder(rsp.Body)
-	err = dec.Decode(&d)
+	err = dec.Decode(&doc)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to decode DID, %w", err)
 	}
 
-	return d, nil
+	return doc, nil
 }

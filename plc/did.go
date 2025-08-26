@@ -2,18 +2,16 @@ package plc
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base32"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"io"
 
+	"github.com/bluesky-social/indigo/atproto/identity"
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/fxamacker/cbor/v2"
-	"github.com/multiformats/go-multibase"
+	"github.com/whyrusleeping/go-did"
 )
 
 // https://atproto.com/specs/did
@@ -24,44 +22,10 @@ import (
 // https://github.com/blacksky-algorithms/rsky/blob/main/rsky-pds/src/plc/operations.rs#L281
 // https://github.com/blacksky-algorithms/rsky/blob/main/rsky-common/src/sign.rs#L8
 
-type VerificationMethod struct {
-	// The DID followed by an identifying fragment. Use #atproto as the fragment for atproto signing keys
-	Id string `json:"id"`
-	// The fixed string Multikey
-	Type string `json:"type"`
-	// DID controlling the key, which in the current version of atproto must match the account DID itself
-	Controller string `json:"controller"`
-	// The public key itself, encoded in multibase format (with multicodec type indicator, and "compressed" key bytes)
-	PublicKeyMultibase string `json:"publicKeyMultibase"`
-}
-
-type Service struct {
-	Id              string `json:"id"`
-	Type            string `json:"type"`
-	ServiceEndpoint string `json:"serviceEndpoint"`
-}
-
-type DID struct {
-	Context             any                   `json:"@context"`
-	Id                  string                `json:"id"`
-	VerificationMethods []*VerificationMethod `json:"verificationMethods"`
-	AlsoKnownAs         []string              `json:"alsoKnownAs"`
-	Service             []*Service            `json:"service"`
-}
-
-func (d *DID) String() string {
-	return d.Id
-}
-
-func (d *DID) Marshal(wr io.Writer) error {
-	enc := json.NewEncoder(wr)
-	return enc.Encode(d)
-}
-
 type NewDIDResult struct {
-	DID             *DID
-	CreateOperation CreateOperationSigned
-	PrivateKey      *ecdsa.PrivateKey
+	DID          *identity.DIDDocument
+	PlcOperation PlcOperationSigned
+	PrivateKey   *did.PrivKey
 }
 
 // https://github.com/bluesky-social/indigo/blob/main/atproto/identity/identity.go#L42	<-- ParseIdentity (from DIDDoc)
@@ -75,35 +39,21 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 	// Collect values for the essential operation data fields, including generating new secure key pairs if necessary
 	// Only secp256k1 (“k256”) and NIST P-256 (“p256”) keys are currently supported for rotation keys, whereas verificationMethods keys can be any syntactically-valid did:key.
 
-	private_key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	private_key, err := did.GeneratePrivKey(rand.Reader, did.KeyTypeP256)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create P256 key, %w", err)
+		return nil, fmt.Errorf("Failed to generate private key, %w", err)
 	}
 
-	public_key := &private_key.PublicKey
-
-	public_key_b, err := public_key.Bytes()
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to derive publi key bytes", err)
-	}
-
-	prefix_mb := []byte{0xEC} // 0x80, 0x13}
-	data_mb := append(prefix_mb, public_key_b...)
-
-	public_mb, err := multibase.Encode(multibase.Base58BTC, data_mb)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to derive multibase encoding for public key, %w", err)
-	}
+	public_key := private_key.Public()
+	public_mb := public_key.MultibaseString()
 
 	verification_key := fmt.Sprintf("%s:%s", DID_KEY, public_mb)
 
 	// Construct an “unsigned” regular operation object.
 	// Include a prev field with null value. do not use the deprecated/legacy operation format for new DID creations
 
-	unsigned_op := GenesisOperation{
+	unsigned_op := PlcOperation{
 		Type: "plc_operation",
 		VerificationMethods: map[string]string{
 			"atproto": verification_key,
@@ -112,7 +62,7 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 			verification_key,
 		},
 		AlsoKnownAs: []string{fmt.Sprintf("at://%s", handle)},
-		Services: map[string]GenesisOperationService{
+		Services: map[string]PlcOperationService{
 			"atproto_pds": {
 				Type:     "AtprotoPersonalDataServer",
 				Endpoint: service,
@@ -138,24 +88,16 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 		return nil, fmt.Errorf("unsigned CBOR marshal: %w", err)
 	}
 
-	// hash unsigned_b because that is what blacksky does...
-	// https://github.com/blacksky-algorithms/rsky/blob/main/rsky-common/src/sign.rs#L8
-
-	unsigned_hash := sha256.Sum256(unsigned_b)
-	sig, err := ecdsa.SignASN1(rand.Reader, private_key, unsigned_hash[:])
-
-	if err != nil {
-		return nil, err
-	}
+	sig, err := private_key.Sign(unsigned_b)
 
 	sig_b64 := base64.RawURLEncoding.EncodeToString(sig)
 
 	// Serialize the “signed” operation with DAG-CBOR, take the SHA-256 hash of those bytes, and encode the hash bytes in base32.
 	// use the first 24 characters to generate DID value (did:plc:<hashchars>)
 
-	signed_op := GenesisOperationSigned{
-		GenesisOperation: unsigned_op,
-		Signature:        sig_b64,
+	signed_op := PlcOperationSigned{
+		PlcOperation: unsigned_op,
+		Signature:    sig_b64,
 	}
 
 	signed_b, err := enc_mode.Marshal(signed_op)
@@ -177,70 +119,40 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 
 	did_id := fmt.Sprintf("%s:%s", DID_PLC, str_did)
 
-	did := &DID{
-		Context: []string{
-			"https://www.w3.org/ns/did/v1",
-			"https://w3id.org/security/multikey/v1",
-			"https://w3id.org/security/suites/secp256k1-2019/v1",
-		},
-		Id: did_id,
-		VerificationMethods: []*VerificationMethod{
-			&VerificationMethod{
-				Id:                 fmt.Sprintf("%s#atproto", did_id),
+	_, err = did.ParseDID(did_id)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse plc did, %w", err)
+	}
+
+	// Update to use indigo/atproto/identity.DidDocument
+
+	did := &identity.DIDDocument{
+		DID:         syntax.DID(did_id),
+		AlsoKnownAs: unsigned_op.AlsoKnownAs,
+		VerificationMethod: []identity.DocVerificationMethod{
+			identity.DocVerificationMethod{
+				ID:                 fmt.Sprintf("%s#atproto", did_id),
 				Type:               "Multikey",
 				Controller:         did_id,
 				PublicKeyMultibase: verification_key,
 			},
 		},
-		// RotationKeys: unsigned.RotationKeys,
-		AlsoKnownAs: unsigned_op.AlsoKnownAs,
-		Service: []*Service{
-			&Service{
-				Id:              "#atproto_pds",
+		Service: []identity.DocService{
+			identity.DocService{
+				ID:              "#atproto_pds",
 				Type:            "AtprotoPersonalDataServer",
 				ServiceEndpoint: service,
 			},
 		},
 	}
 
-	// Generate and sign a new CreateOperation blob
-	// 
-
-	unsigned_create_op := CreateOperation{
-		Type:        "create",
-		SigningKey:  verification_key,
-		RecoveryKey: verification_key,
-		Handle:      handle,
-		Service:     service,
-		Prev:        nil,
-	}
-
-	unsigned_create_b, err := enc_mode.Marshal(unsigned_create_op)
-
-	if err != nil {
-		return nil, fmt.Errorf("unsigned CBOR marshal: %w", err)
-	}
-
-	unsigned_create_hash := sha256.Sum256(unsigned_create_b)
-	sig_create, err := ecdsa.SignASN1(rand.Reader, private_key, unsigned_create_hash[:])
-
-	if err != nil {
-		return nil, err
-	}
-
-	sig_create_b64 := base64.RawURLEncoding.EncodeToString(sig_create)
-
-	signed_create_op := CreateOperationSigned{
-		CreateOperation: unsigned_create_op,
-		Signature:       sig_create_b64,
-	}
-
 	//
 
 	rsp := &NewDIDResult{
-		DID:             did,
-		CreateOperation: signed_create_op,
-		PrivateKey:      private_key,
+		DID:          did,
+		PlcOperation: signed_op,
+		PrivateKey:   private_key,
 	}
 
 	return rsp, nil
