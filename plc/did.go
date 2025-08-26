@@ -60,14 +60,14 @@ func (d *DID) Marshal(wr io.Writer) error {
 
 type NewDIDResult struct {
 	DID             *DID
-	CreateOperation CreatePlcOperationSigned
+	CreateOperation CreateOperationSigned
 	PrivateKey      *ecdsa.PrivateKey
 }
 
 // https://github.com/bluesky-social/indigo/blob/main/atproto/identity/identity.go#L42	<-- ParseIdentity (from DIDDoc)
 // https://github.com/bluesky-social/indigo/blob/8be102876fb7e638aa4c9ed6c9d4991ca19a0973/atproto/identity/diddoc.go#L7	<-- DIDDocument
 
-func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, error) {
+func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, error) {
 
 	// https://web.plc.directory/spec/v0.1/did-plc
 	// In pseudo-code: did:plc:${base32Encode(sha256(createOp)).slice(0,24)}
@@ -89,7 +89,7 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 		return nil, fmt.Errorf("Failed to derive publi key bytes", err)
 	}
 
-	prefix_mb := []byte{0x80, 0x12}
+	prefix_mb := []byte{0xEC} // 0x80, 0x13}
 	data_mb := append(prefix_mb, public_key_b...)
 
 	public_mb, err := multibase.Encode(multibase.Base58BTC, data_mb)
@@ -103,7 +103,7 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 	// Construct an “unsigned” regular operation object.
 	// Include a prev field with null value. do not use the deprecated/legacy operation format for new DID creations
 
-	unsigned_op := CreatePlcOperation{
+	unsigned_op := GenesisOperation{
 		Type: "plc_operation",
 		VerificationMethods: map[string]string{
 			"atproto": verification_key,
@@ -112,13 +112,13 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 			verification_key,
 		},
 		AlsoKnownAs: []string{fmt.Sprintf("at://%s", handle)},
-		Services: map[string]CreatePlcService{
+		Services: map[string]GenesisOperationService{
 			"atproto_pds": {
 				Type:     "AtprotoPersonalDataServer",
-				Endpoint: host,
+				Endpoint: service,
 			},
 		},
-		// genesis – no previous (Prev) operation
+		Prev: nil, // genesis – no previous (Prev) operation
 	}
 
 	// Serialize the “unsigned” operation with DAG-CBOR, and sign the resulting bytes with one of the initial rotationKeys.
@@ -153,9 +153,9 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 	// Serialize the “signed” operation with DAG-CBOR, take the SHA-256 hash of those bytes, and encode the hash bytes in base32.
 	// use the first 24 characters to generate DID value (did:plc:<hashchars>)
 
-	signed_op := CreatePlcOperationSigned{
-		CreatePlcOperation: unsigned_op,
-		Signature:          sig_b64,
+	signed_op := GenesisOperationSigned{
+		GenesisOperation: unsigned_op,
+		Signature:        sig_b64,
 	}
 
 	signed_b, err := enc_mode.Marshal(signed_op)
@@ -198,14 +198,47 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 			&Service{
 				Id:              "#atproto_pds",
 				Type:            "AtprotoPersonalDataServer",
-				ServiceEndpoint: host,
+				ServiceEndpoint: service,
 			},
 		},
 	}
 
+	//
+
+	unsigned_create_op := CreateOperation{
+		Type:        "create",
+		SigningKey:  verification_key,
+		RecoveryKey: verification_key,
+		Handle:      handle,
+		Service:     service,
+		Prev:        nil,
+	}
+
+	unsigned_create_b, err := enc_mode.Marshal(unsigned_create_op)
+
+	if err != nil {
+		return nil, fmt.Errorf("unsigned CBOR marshal: %w", err)
+	}
+
+	unsigned_create_hash := sha256.Sum256(unsigned_create_b)
+	sig_create, err := ecdsa.SignASN1(rand.Reader, private_key, unsigned_create_hash[:])
+
+	if err != nil {
+		return nil, err
+	}
+
+	sig_create_b64 := base64.RawURLEncoding.EncodeToString(sig_create)
+
+	signed_create_op := CreateOperationSigned{
+		CreateOperation: unsigned_create_op,
+		Signature:       sig_create_b64,
+	}
+
+	//
+
 	rsp := &NewDIDResult{
 		DID:             did,
-		CreateOperation: signed_op,
+		CreateOperation: signed_create_op,
 		PrivateKey:      private_key,
 	}
 

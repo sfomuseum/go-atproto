@@ -28,9 +28,10 @@ func CreateUser(ctx context.Context, host string, handle string) (*User, error) 
 	}
 
 	did := rsp.DID
-	op := rsp.CreateOperation
 
-	err = api.CreatePlc(ctx, did.Id, op)
+	//
+
+	err = api.Create(ctx, did.Id, rsp.CreateOperation)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create PLC for DID, %w", err)

@@ -24,7 +24,7 @@ type createPlcError struct {
 
 // https://github.com/bluesky-social/indigo/blob/main/plc/client.go#L61
 
-func CreatePlc(ctx context.Context, str_did string, op plc.CreatePlcOperationSigned) error {
+func Create(ctx context.Context, str_did string, op plc.CreateOperationSigned) error {
 
 	enc_op, err := json.Marshal(op)
 
