@@ -10,6 +10,9 @@ import (
 	"log/slog"
 	"net/http"
 
+	"io"
+	"os"
+	
 	"github.com/sfomuseum/go-atproto/plc"
 )
 
@@ -36,6 +39,11 @@ func CreatePlc(ctx context.Context, str_did string, op plc.CreatePlcOperationSig
 		return fmt.Errorf("Failed to create new request, %w", err)
 	}
 
+	req.Header.Set("Content-type", "application/json")
+	
+	req2 := req.Clone(ctx)
+	req2.Write(os.Stdout)
+	
 	rsp, err := http.DefaultClient.Do(req)
 
 	if err != nil {
@@ -48,8 +56,10 @@ func CreatePlc(ctx context.Context, str_did string, op plc.CreatePlcOperationSig
 
 		var m *createPlcError
 
-		dec := json.NewDecoder(rsp.Body)
-		err = dec.Decode(&m)
+		body, _ := io.ReadAll(rsp.Body)
+		slog.Error("WTF", "body", string(body))
+		
+		err := json.Unmarshal(body, &m)
 
 		if err != nil {
 			slog.Error("Failed to decode response (error) body", "error", err)

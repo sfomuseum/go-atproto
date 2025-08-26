@@ -7,7 +7,7 @@ const MB_ED25519 string = "\xED\x01"
 
 type CreatePlcService struct {
 	Type     string `cbor:"type" json:"type"`
-	Endpoint string `cbor:"endpoint json:"endpoint""`
+	Endpoint string `cbor:"endpoint" json:"endpoint"`
 }
 
 type CreatePlcOperation struct {
