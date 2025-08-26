@@ -2,14 +2,19 @@ package plc
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base32"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+
+	"log/slog"
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/multiformats/go-multibase"
@@ -79,9 +84,26 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 		return nil, fmt.Errorf("key generation: %w", err)
 	}
 
+	private_256, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+
+	if err != nil {
+		return nil, err
+	}
+
+	public_256 := &private_256.PublicKey
+	public_256_b, err := public_256.Bytes()
+
+	if err != nil {
+		return nil, err
+	}
+
+	b64_256 := base64.StdEncoding.EncodeToString(public_256_b)
+
+	slog.Info("WUT", "B64", b64_256)
+
 	// https://github.com/bluesky-social/indigo/blob/8be102876fb7e638aa4c9ed6c9d4991ca19a0973/plc/client.go#L71 <-- CreateDID... WUT???
 	// https://github.com/bluesky-social/indigo/blob/8be102876fb7e638aa4c9ed6c9d4991ca19a0973/cmd/gosky/did.go#L79
-	
+
 	// Construct an “unsigned” regular operation object.
 	// Include a prev field with null value. do not use the deprecated/legacy operation format for new DID creations
 
@@ -89,7 +111,8 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 	public_b64 := base64.RawURLEncoding.EncodeToString(public_key)
 
 	// Only secp256k1 (“k256”) and NIST P-256 (“p256”) keys are currently supported for rotation keys, whereas verificationMethods keys can be any syntactically-valid did:key.
-	
+	public_b64 = b64_256
+
 	unsigned_op := CreatePlcOperation{
 		Type: "plc_operation",
 		VerificationMethods: map[string]string{
@@ -125,7 +148,18 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 		return nil, fmt.Errorf("unsigned CBOR marshal: %w", err)
 	}
 
-	sig := ed25519.Sign(private_key, unsigned_b)
+	// sig := ed25519.Sign(private_key, unsigned_b)
+
+	// hash unsigned_b because that is what blacksky does...
+	// https://github.com/blacksky-algorithms/rsky/blob/main/rsky-common/src/sign.rs#L8
+
+	unsigned_hash := sha256.Sum256(unsigned_b)
+	sig, err := ecdsa.SignASN1(rand.Reader, private_256, unsigned_hash[:])
+
+	if err != nil {
+		return nil, err
+	}
+
 	sig_b64 := base64.RawURLEncoding.EncodeToString(sig)
 
 	// Serialize the “signed” operation with DAG-CBOR, take the SHA-256 hash of those bytes, and encode the hash bytes in base32.
@@ -155,32 +189,41 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 
 	// https://atproto.com/specs/cryptography
 
-	combined := append([]byte(MB_ED25519), public_key...)
+	derPub, err := x509.MarshalPKIXPublicKey(public_256)
 
-	public_mb, err := multibase.Encode(multibase.Base58BTC, combined)
+	if err != nil {
+		return nil, err
+	}
+
+	public_mb, err := multibase.Encode(multibase.Base58BTC, derPub)
+
+	// combined := append([]byte(MB_ED25519), public_key...)
+	// public_mb, err := multibase.Encode(multibase.Base58BTC, combined)
 
 	if err != nil {
 		return nil, err
 	}
 
 	// START OF code for sanity-checking the multibase encoding
+	/*
 
-	_, body, err := multibase.Decode(public_mb)
+		_, body, err := multibase.Decode(public_mb)
 
-	if err != nil {
-		return nil, err
-	}
+		if err != nil {
+			return nil, err
+		}
 
-	if len(body) < 2 {
-		return nil, fmt.Errorf("Decode key too short")
-	}
+		if len(body) < 2 {
+			return nil, fmt.Errorf("Decode key too short")
+		}
 
-	pk := ed25519.PublicKey(body[2:])
+		pk := ed25519.PublicKey(body[2:])
 
-	if !pk.Equal(public_key) {
-		return nil, fmt.Errorf("Failed to encode/decode multibase public key")
-	}
+		if !pk.Equal(public_key) {
+			return nil, fmt.Errorf("Failed to encode/decode multibase public key")
+		}
 
+	*/
 	// END OF code for sanity-checking the multibase encoding
 
 	did_id := fmt.Sprintf("%s:%s", DID_PLC, str_did)

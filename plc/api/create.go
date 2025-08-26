@@ -15,7 +15,7 @@ import (
 
 	_ "io"
 	"os"
-	
+
 	"github.com/sfomuseum/go-atproto/plc"
 )
 
@@ -45,13 +45,13 @@ func CreatePlc(ctx context.Context, str_did string, op plc.CreatePlcOperationSig
 	}
 
 	req.Header.Set("Content-type", "application/json")
-	
+
 	req2 := req.Clone(ctx)
 	req2.Write(os.Stdout)
 
 	// Currently failing here because... ???
 	// https://github.com/did-method-plc/did-method-plc/blob/main/packages/server/src/constraints.ts#L30-L45
-	
+
 	rsp, err := http.DefaultClient.Do(req)
 
 	if err != nil {
@@ -59,22 +59,22 @@ func CreatePlc(ctx context.Context, str_did string, op plc.CreatePlcOperationSig
 	}
 
 	defer rsp.Body.Close()
-	
+
 	if rsp.StatusCode != 200 {
 
 		/*
-		var m *createPlcError
+			var m *createPlcError
 
-		body, _ := io.ReadAll(rsp.Body)
-		
-		err := json.Unmarshal(body, &m)
+			body, _ := io.ReadAll(rsp.Body)
 
-		if err != nil {
-			slog.Error("Failed to decode response (error) body", "error", err)
-			return fmt.Errorf("Request failed with error code %s", rsp.Status)
-		}
+			err := json.Unmarshal(body, &m)
+
+			if err != nil {
+				slog.Error("Failed to decode response (error) body", "error", err)
+				return fmt.Errorf("Request failed with error code %s", rsp.Status)
+			}
 		*/
-		
+
 		return fmt.Errorf("Request failed with error code %d: %s", rsp.StatusCode, rsp.Status)
 	}
 
