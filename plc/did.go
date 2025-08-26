@@ -75,21 +75,21 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 	// Collect values for the essential operation data fields, including generating new secure key pairs if necessary
 	// Only secp256k1 (“k256”) and NIST P-256 (“p256”) keys are currently supported for rotation keys, whereas verificationMethods keys can be any syntactically-valid did:key.
 
-	private_256, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	private_key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create P256 key, %w", err)
 	}
 
-	public_256 := &private_256.PublicKey
+	public_key := &private_key.PublicKey
 
-	public_256_b, err := public_256.Bytes()
+	public_key_b, err := public_key.Bytes()
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to derive publi key bytes", err)
 	}
 
-	public_b64 := base64.StdEncoding.EncodeToString(public_256_b)
+	public_b64 := base64.StdEncoding.EncodeToString(public_key_b)
 
 	// Construct an “unsigned” regular operation object.
 	// Include a prev field with null value. do not use the deprecated/legacy operation format for new DID creations
@@ -133,7 +133,7 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 	// https://github.com/blacksky-algorithms/rsky/blob/main/rsky-common/src/sign.rs#L8
 
 	unsigned_hash := sha256.Sum256(unsigned_b)
-	sig, err := ecdsa.SignASN1(rand.Reader, private_256, unsigned_hash[:])
+	sig, err := ecdsa.SignASN1(rand.Reader, private_key, unsigned_hash[:])
 
 	if err != nil {
 		return nil, err
@@ -169,7 +169,7 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 	// https://atproto.com/specs/cryptography
 
 	prefix_mb := []byte{0x80, 0x12}
-	data_mb := append(prefix_mb, public_256_b...)
+	data_mb := append(prefix_mb, public_key_b...)
 
 	public_mb, err := multibase.Encode(multibase.Base58BTC, data_mb)
 
@@ -208,7 +208,7 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 	rsp := &NewDIDResult{
 		DID:             did,
 		CreateOperation: signed_op,
-		PrivateKey:      private_256,
+		PrivateKey:      private_key,
 	}
 
 	return rsp, nil

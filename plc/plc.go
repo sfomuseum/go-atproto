@@ -16,7 +16,7 @@ type CreatePlcOperation struct {
 	RotationKeys        []string                    `cbor:"rotationKeys" json:"rotationKeys"`
 	AlsoKnownAs         []string                    `cbor:"alsoKnownAs" json:"alsoKnownAs"`
 	Services            map[string]CreatePlcService `cbor:"services" json:"services"`
-	Prev                interface{}                 `cbor:"prev" json:"prev"`
+	Prev                interface{}                 `cbor:"prev" json:"prev,omitempty"`
 }
 
 type CreatePlcOperationSigned struct {

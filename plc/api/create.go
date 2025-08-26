@@ -10,10 +10,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	_ "log/slog"
 	"net/http"
 
-	_ "io"
+	_ "log/slog"
 	"os"
 
 	"github.com/sfomuseum/go-atproto/plc"
@@ -46,8 +45,22 @@ func CreatePlc(ctx context.Context, str_did string, op plc.CreatePlcOperationSig
 
 	req.Header.Set("Content-type", "application/json")
 
+	// START OF DEBUGGING
+
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	err = enc.Encode(op)
+
+	if err != nil {
+		return err
+	}
+
 	req2 := req.Clone(ctx)
 	req2.Write(os.Stdout)
+
+	os.Stdout.Write([]byte("\n\n"))
+
+	// END OF DEBUGGING
 
 	// Currently failing here because... ???
 	// https://github.com/did-method-plc/did-method-plc/blob/main/packages/server/src/constraints.ts#L30-L45
