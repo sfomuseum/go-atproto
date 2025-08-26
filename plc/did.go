@@ -109,7 +109,7 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 				Endpoint: host,
 			},
 		},
-		// Prev: nil, // genesis – no previous operation
+		// genesis – no previous (Prev) operation
 	}
 
 	// Serialize the “unsigned” operation with DAG-CBOR, and sign the resulting bytes with one of the initial rotationKeys.
