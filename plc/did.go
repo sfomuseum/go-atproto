@@ -6,7 +6,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
-	"crypto/x509"
 	"encoding/base32"
 	"encoding/base64"
 	"encoding/json"
@@ -84,21 +83,13 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 
 	public_256 := &private_256.PublicKey
 
-	/*
-		public_256_b, err := public_256.Bytes()
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to derive publi key bytes", err)
-		}
-	*/
-
-	public_x509, err := x509.MarshalPKIXPublicKey(public_256)
+	public_256_b, err := public_256.Bytes()
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to derive publi key bytes", err)
 	}
 
-	public_b64 := base64.StdEncoding.EncodeToString(public_x509)
+	public_b64 := base64.StdEncoding.EncodeToString(public_256_b)
 
 	// Construct an “unsigned” regular operation object.
 	// Include a prev field with null value. do not use the deprecated/legacy operation format for new DID creations
@@ -118,7 +109,7 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 				Endpoint: host,
 			},
 		},
-		Prev: nil, // genesis – no previous operation
+		// Prev: nil, // genesis – no previous operation
 	}
 
 	// Serialize the “unsigned” operation with DAG-CBOR, and sign the resulting bytes with one of the initial rotationKeys.
@@ -177,7 +168,10 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 
 	// https://atproto.com/specs/cryptography
 
-	public_mb, err := multibase.Encode(multibase.Base58BTC, public_x509)
+	prefix_mb := []byte{0x80, 0x12}
+	data_mb := append(prefix_mb, public_256_b...)
+
+	public_mb, err := multibase.Encode(multibase.Base58BTC, data_mb)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to derive multibase encoding for public key, %w", err)
