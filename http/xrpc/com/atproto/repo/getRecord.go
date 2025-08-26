@@ -12,7 +12,7 @@ import (
 )
 
 const GetRecordHandlerURI string = "/xrpc/com.atproto.repo.getRecord"
-const GetRecordHandlerMethod string = "GET"
+const GetRecordHandlerMethod string = http.MethodGet
 
 type GetRecordResponse struct {
 	CID       string           `json:"cid"`

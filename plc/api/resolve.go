@@ -1,4 +1,4 @@
-package plc
+package api
 
 import (
 	"context"
@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/sfomuseum/go-atproto/did"
+	"github.com/sfomuseum/go-atproto/plc"
 )
 
 // https://web.plc.directory/api/redoc#operation/ResolveDid
 
-func ResolveDID(ctx context.Context, str_did string) (*did.DID, error) {
+func ResolveDID(ctx context.Context, str_did string) (*plc.DID, error) {
 
 	u := NewURL()
 	u.Path = fmt.Sprintf("/%s", str_did)
@@ -34,7 +34,7 @@ func ResolveDID(ctx context.Context, str_did string) (*did.DID, error) {
 		return nil, fmt.Errorf("Request failed with error code %d %s", rsp.StatusCode, rsp.Status)
 	}
 
-	var d *did.DID
+	var d *plc.DID
 
 	dec := json.NewDecoder(rsp.Body)
 	err = dec.Decode(&d)

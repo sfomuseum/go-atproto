@@ -115,7 +115,7 @@ func (db *BlobUsersDatabase) UpdateUser(ctx context.Context, user *User) error {
 }
 
 func (db *BlobUsersDatabase) DeleteUser(ctx context.Context, user *User) error {
-	return db.bucket.Delete(ctx, user.DID)
+	return db.bucket.Delete(ctx, user.Id)
 }
 
 func (db *BlobUsersDatabase) ListUsers(ctx context.Context) iter.Seq2[*User, error] {
@@ -132,7 +132,7 @@ func (db *BlobUsersDatabase) Close() error {
 
 func (db *BlobUsersDatabase) writeUser(ctx context.Context, user *User) error {
 
-	path := db.userPath(user.DID)
+	path := db.userPath(user.Id)
 
 	wr, err := db.bucket.NewWriter(ctx, path, nil)
 

@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/sfomuseum/go-atproto/plc"
+	"github.com/sfomuseum/go-atproto/plc/api"
 )
 
 func main() {
@@ -18,7 +18,7 @@ func main() {
 
 	ctx := context.Background()
 
-	d, err := plc.ResolveDID(ctx, did)
+	d, err := api.ResolveDID(ctx, did)
 
 	if err != nil {
 		log.Fatal(err)

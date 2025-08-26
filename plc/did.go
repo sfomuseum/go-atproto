@@ -1,6 +1,7 @@
-package did
+package plc
 
 import (
+	"context"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
@@ -9,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/multiformats/go-multibase"
@@ -22,11 +22,6 @@ import (
 // https://github.com/blacksky-algorithms/rsky/blob/main/rsky-pds/src/plc/operations.rs#L50C5-L58C46
 // https://github.com/blacksky-algorithms/rsky/blob/main/rsky-pds/src/plc/operations.rs#L281
 // https://github.com/blacksky-algorithms/rsky/blob/main/rsky-common/src/sign.rs#L8
-
-const DID_PLC string = "did:plc"
-const DID_KEY string = "did:key"
-
-const MB_ED25519 string = "\xED\x01"
 
 type VerificationMethod struct {
 	// The DID followed by an identifying fragment. Use #atproto as the fragment for atproto signing keys
@@ -49,36 +44,12 @@ type DID struct {
 	Context             any                   `json:"@context"`
 	Id                  string                `json:"id"`
 	VerificationMethods []*VerificationMethod `json:"verificationMethods"`
-	// RotationKeys        []string              `json:"rotationKeys"`
-	AlsoKnownAs []string   `json:"alsoKnownAs"`
-	Service     []*Service `json:"service"`
+	AlsoKnownAs         []string              `json:"alsoKnownAs"`
+	Service             []*Service            `json:"service"`
 }
 
 func (d *DID) String() string {
 	return d.Id
-}
-
-func (d *DID) PublicKey(suffix string) ([]byte, error) {
-
-	for _, m := range d.VerificationMethods {
-
-		if !strings.HasSuffix(m.Id, suffix) {
-			continue
-		}
-
-		key_mb := m.PublicKeyMultibase
-		key_mb = strings.TrimLeft(key_mb, fmt.Sprintf("%s:", DID_KEY))
-
-		_, body, err := multibase.Decode(key_mb)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to decode multibase, %w", err)
-		}
-
-		return body[2:], nil
-	}
-
-	return nil, fmt.Errorf("Key not found")
 }
 
 func (d *DID) Marshal(wr io.Writer) error {
@@ -86,26 +57,13 @@ func (d *DID) Marshal(wr io.Writer) error {
 	return enc.Encode(d)
 }
 
-type GenesisOperationService struct {
-	Type     string `cbor:"type",json:"type"`
-	Endpoint string `cbor:"endpoint,json:"endpoint""`
+type NewDIDResult struct {
+	DID             *DID
+	CreateOperation CreatePlcOperationSigned
+	PrivateKey      ed25519.PrivateKey
 }
 
-type GenesisOperation struct {
-	Type                string                             `cbor:"type"`
-	VerificationMethods map[string]string                  `cbor:"verificationMethods"`
-	RotationKeys        []string                           `cbor:"rotationKeys"`
-	AlsoKnownAs         []string                           `cbor:"alsoKnownAs"`
-	Services            map[string]GenesisOperationService `cbor:"services"`
-	Prev                interface{}                        `cbor:"prev"`
-}
-
-type GenesisOperationSigned struct {
-	GenesisOperation
-	Signature string `cbor:"sig"`
-}
-
-func NewDID(handle string, host string) (*DID, ed25519.PrivateKey, error) {
+func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, error) {
 
 	// https://web.plc.directory/spec/v0.1/did-plc
 	// In pseudo-code: did:plc:${base32Encode(sha256(createOp)).slice(0,24)}
@@ -115,7 +73,7 @@ func NewDID(handle string, host string) (*DID, ed25519.PrivateKey, error) {
 	public_key, private_key, err := ed25519.GenerateKey(rand.Reader)
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("key generation: %w", err)
+		return nil, fmt.Errorf("key generation: %w", err)
 	}
 
 	// Construct an “unsigned” regular operation object.
@@ -124,7 +82,7 @@ func NewDID(handle string, host string) (*DID, ed25519.PrivateKey, error) {
 	// Base64url‑encoded public key – the spec uses this representation.
 	public_b64 := base64.RawURLEncoding.EncodeToString(public_key)
 
-	unsigned := GenesisOperation{
+	unsigned_op := CreatePlcOperation{
 		Type: "plc_operation",
 		VerificationMethods: map[string]string{
 			"atproto": fmt.Sprintf("%s:%s", DID_KEY, public_b64),
@@ -133,7 +91,7 @@ func NewDID(handle string, host string) (*DID, ed25519.PrivateKey, error) {
 			fmt.Sprintf("%s:%s", DID_KEY, public_b64),
 		},
 		AlsoKnownAs: []string{fmt.Sprintf("at://%s", handle)},
-		Services: map[string]GenesisOperationService{
+		Services: map[string]CreatePlcService{
 			"atproto_pds": {
 				Type:     "AtprotoPersonalDataServer",
 				Endpoint: host,
@@ -150,13 +108,13 @@ func NewDID(handle string, host string) (*DID, ed25519.PrivateKey, error) {
 	enc_mode, err := enc_opts.EncMode()
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("cbor encoder: %w", err)
+		return nil, fmt.Errorf("cbor encoder: %w", err)
 	}
 
-	unsigned_b, err := enc_mode.Marshal(unsigned)
+	unsigned_b, err := enc_mode.Marshal(unsigned_op)
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("unsigned CBOR marshal: %w", err)
+		return nil, fmt.Errorf("unsigned CBOR marshal: %w", err)
 	}
 
 	sig := ed25519.Sign(private_key, unsigned_b)
@@ -165,15 +123,15 @@ func NewDID(handle string, host string) (*DID, ed25519.PrivateKey, error) {
 	// Serialize the “signed” operation with DAG-CBOR, take the SHA-256 hash of those bytes, and encode the hash bytes in base32.
 	// use the first 24 characters to generate DID value (did:plc:<hashchars>)
 
-	signed := GenesisOperationSigned{
-		GenesisOperation: unsigned,
-		Signature:        sig_b64,
+	signed_op := CreatePlcOperationSigned{
+		CreatePlcOperation: unsigned_op,
+		Signature:          sig_b64,
 	}
 
-	signed_b, err := enc_mode.Marshal(signed)
+	signed_b, err := enc_mode.Marshal(signed_op)
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("signed CBOR marshal: %w", err)
+		return nil, fmt.Errorf("signed CBOR marshal: %w", err)
 	}
 
 	hash := sha256.Sum256(signed_b)
@@ -182,7 +140,7 @@ func NewDID(handle string, host string) (*DID, ed25519.PrivateKey, error) {
 	hash_b32 := b32_enc.EncodeToString(hash[:]) // 52 chars
 
 	if len(hash_b32) < 24 {
-		return nil, nil, fmt.Errorf("hash too short")
+		return nil, fmt.Errorf("hash too short")
 	}
 
 	str_did := hash_b32[:24]
@@ -194,7 +152,7 @@ func NewDID(handle string, host string) (*DID, ed25519.PrivateKey, error) {
 	public_mb, err := multibase.Encode(multibase.Base58BTC, combined)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// START OF code for sanity-checking the multibase encoding
@@ -202,17 +160,17 @@ func NewDID(handle string, host string) (*DID, ed25519.PrivateKey, error) {
 	_, body, err := multibase.Decode(public_mb)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if len(body) < 2 {
-		return nil, nil, fmt.Errorf("Decode key too short")
+		return nil, fmt.Errorf("Decode key too short")
 	}
 
 	pk := ed25519.PublicKey(body[2:])
 
 	if !pk.Equal(public_key) {
-		return nil, nil, fmt.Errorf("Failed to encode/decode multibase public key")
+		return nil, fmt.Errorf("Failed to encode/decode multibase public key")
 	}
 
 	// END OF code for sanity-checking the multibase encoding
@@ -235,7 +193,7 @@ func NewDID(handle string, host string) (*DID, ed25519.PrivateKey, error) {
 			},
 		},
 		// RotationKeys: unsigned.RotationKeys,
-		AlsoKnownAs: unsigned.AlsoKnownAs,
+		AlsoKnownAs: unsigned_op.AlsoKnownAs,
 		Service: []*Service{
 			&Service{
 				Id:              "#atproto_pds",
@@ -245,5 +203,11 @@ func NewDID(handle string, host string) (*DID, ed25519.PrivateKey, error) {
 		},
 	}
 
-	return did, private_key, nil
+	rsp := &NewDIDResult{
+		DID:             did,
+		CreateOperation: signed_op,
+		PrivateKey:      private_key,
+	}
+
+	return rsp, nil
 }

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/sfomuseum/go-atproto/did"
+	"github.com/sfomuseum/go-atproto/plc"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 
 	ctx := context.Background()
 
-	str_did, err := did.ResolveHandle(ctx, account_handle, account_host)
+	str_did, err := plc.ResolveHandle(ctx, account_handle, account_host)
 
 	if err != nil {
 		log.Fatal(err)

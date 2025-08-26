@@ -10,7 +10,7 @@ import (
 )
 
 const ResolveHandleHandlerURI string = "/xrpc/com.atproto.identity.resolveHandle"
-const ResolveHandleHandlerMethod string = "GET"
+const ResolveHandleHandlerMethod string = http.MethodGet
 
 type ResolveHandleHandlerOptions struct {
 	UsersDatabase pds.UsersDatabase
@@ -61,7 +61,7 @@ func ResolveHandleHandler(opts *ResolveHandleHandlerOptions) (http.Handler, erro
 			return
 		}
 
-		rsp.Write([]byte(rec.DID))
+		rsp.Write([]byte(rec.Id))
 	}
 
 	return http.HandlerFunc(fn), nil

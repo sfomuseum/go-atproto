@@ -2,19 +2,16 @@ package pds
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
-	"strings"
 	"time"
 
-	"os"
-
-	"github.com/sfomuseum/go-atproto/did"
+	"github.com/sfomuseum/go-atproto/plc"
+	"github.com/sfomuseum/go-atproto/plc/api"
 )
 
 type User struct {
-	DID          string   `json:"did"`
-	PublicKey    string   `json:"public_key"`
+	Id           string   `json:"id"`
+	DID          *plc.DID `json:"did"`
 	PrivateKey   string   `json:"private_key"`
 	Handle       string   `json:"handle"`
 	Aliases      []*Alias `json:"aliases"`
@@ -22,33 +19,29 @@ type User struct {
 	LastModified int64    `json:"lastmodified"`
 }
 
-func CreateUser(ctx context.Context, host string, name string) (*User, error) {
+func CreateUser(ctx context.Context, host string, handle string) (*User, error) {
 
-	d, prv_key, err := did.NewDID(name, host)
+	rsp, err := plc.NewDID(ctx, host, handle)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create new DID, %w", err)
 	}
 
-	d.Marshal(os.Stdout)
+	did := rsp.DID
+	op := rsp.CreateOperation
 
-	pub_key, err := d.PublicKey("#atproto")
+	err = api.CreatePlc(ctx, did.Id, op)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to derive public key from DID, %w", err)
+		return nil, fmt.Errorf("Failed to create PLC for DID, %w", err)
 	}
 
-	pub_b64 := base64.StdEncoding.EncodeToString(pub_key)
-	prv_b64 := base64.StdEncoding.EncodeToString(prv_key)
-
-	aka := d.AlsoKnownAs[0]
-	handle := strings.TrimLeft(aka, "at://")
+	// To do: Private key, wut??
 
 	u := &User{
-		DID:        d.Id,
-		Handle:     handle,
-		PublicKey:  pub_b64,
-		PrivateKey: prv_b64,
+		Id:     did.Id,
+		DID:    did,
+		Handle: handle,
 	}
 
 	return u, nil
