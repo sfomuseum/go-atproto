@@ -46,6 +46,18 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 
 	verification_key := fmt.Sprintf("%s:%s", DID_KEY, public_mb)
 
+	/*
+		rot_private_key, err := did.GeneratePrivKey(rand.Reader, did.KeyTypeP256)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to generate private key, %w", err)
+		}
+
+		rot_public_key := rot_private_key.Public()
+		rot_public_mb := rot_public_key.MultibaseString()
+		rotation_key := fmt.Sprintf("%s:%s", DID_KEY, rot_public_mb)
+	*/
+
 	// Construct an “unsigned” regular operation object.
 	// Include a prev field with null value. do not use the deprecated/legacy operation format for new DID creations
 
@@ -121,7 +133,7 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 		return nil, fmt.Errorf("Failed to parse plc did, %w", err)
 	}
 
-	did := &identity.DIDDocument{
+	doc := &identity.DIDDocument{
 		DID:         syntax.DID(did_id),
 		AlsoKnownAs: unsigned_op.AlsoKnownAs,
 		VerificationMethod: []identity.DocVerificationMethod{
@@ -142,7 +154,7 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 	}
 
 	rsp := &NewDIDResult{
-		DID:          did,
+		DID:          doc,
 		PlcOperation: signed_op,
 		PrivateKey:   private_key,
 	}

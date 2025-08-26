@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"log"
 	"os"
@@ -18,13 +19,14 @@ func main() {
 
 	ctx := context.Background()
 
-	d, err := api.ResolveDID(ctx, did)
+	doc, err := api.ResolveDID(ctx, did)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = d.Marshal(os.Stdout)
+	enc := json.NewEncoder(os.Stdout)
+	err = enc.Encode(doc)
 
 	if err != nil {
 		log.Fatal(err)
