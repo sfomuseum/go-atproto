@@ -13,8 +13,6 @@ import (
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/multiformats/go-multibase"
-	"github.com/bluesky-social/indigo"
-	indigo_plc "github.com/bluesky-social/indigo/plc"	
 )
 
 // https://atproto.com/specs/did
@@ -90,6 +88,8 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 	// Base64url‑encoded public key – the spec uses this representation.
 	public_b64 := base64.RawURLEncoding.EncodeToString(public_key)
 
+	// Only secp256k1 (“k256”) and NIST P-256 (“p256”) keys are currently supported for rotation keys, whereas verificationMethods keys can be any syntactically-valid did:key.
+	
 	unsigned_op := CreatePlcOperation{
 		Type: "plc_operation",
 		VerificationMethods: map[string]string{
