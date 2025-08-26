@@ -3,7 +3,6 @@ package plc
 import (
 	"context"
 	"crypto/ecdsa"
-	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
@@ -13,8 +12,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-
-	"log/slog"
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/multiformats/go-multibase"
@@ -65,7 +62,7 @@ func (d *DID) Marshal(wr io.Writer) error {
 type NewDIDResult struct {
 	DID             *DID
 	CreateOperation CreatePlcOperationSigned
-	PrivateKey      ed25519.PrivateKey
+	PrivateKey      *ecdsa.PrivateKey
 }
 
 // https://github.com/bluesky-social/indigo/blob/main/atproto/identity/identity.go#L42	<-- ParseIdentity (from DIDDoc)
@@ -77,41 +74,34 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 	// In pseudo-code: did:plc:${base32Encode(sha256(createOp)).slice(0,24)}
 
 	// Collect values for the essential operation data fields, including generating new secure key pairs if necessary
-
-	public_key, private_key, err := ed25519.GenerateKey(rand.Reader)
-
-	if err != nil {
-		return nil, fmt.Errorf("key generation: %w", err)
-	}
+	// Only secp256k1 (“k256”) and NIST P-256 (“p256”) keys are currently supported for rotation keys, whereas verificationMethods keys can be any syntactically-valid did:key.
 
 	private_256, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to create P256 key, %w", err)
 	}
 
 	public_256 := &private_256.PublicKey
-	public_256_b, err := public_256.Bytes()
+
+	/*
+		public_256_b, err := public_256.Bytes()
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to derive publi key bytes", err)
+		}
+	*/
+
+	public_x509, err := x509.MarshalPKIXPublicKey(public_256)
 
 	if err != nil {
 		return nil, err
 	}
 
-	b64_256 := base64.StdEncoding.EncodeToString(public_256_b)
-
-	slog.Info("WUT", "B64", b64_256)
-
-	// https://github.com/bluesky-social/indigo/blob/8be102876fb7e638aa4c9ed6c9d4991ca19a0973/plc/client.go#L71 <-- CreateDID... WUT???
-	// https://github.com/bluesky-social/indigo/blob/8be102876fb7e638aa4c9ed6c9d4991ca19a0973/cmd/gosky/did.go#L79
+	public_b64 := base64.StdEncoding.EncodeToString(public_x509)
 
 	// Construct an “unsigned” regular operation object.
 	// Include a prev field with null value. do not use the deprecated/legacy operation format for new DID creations
-
-	// Base64url‑encoded public key – the spec uses this representation.
-	public_b64 := base64.RawURLEncoding.EncodeToString(public_key)
-
-	// Only secp256k1 (“k256”) and NIST P-256 (“p256”) keys are currently supported for rotation keys, whereas verificationMethods keys can be any syntactically-valid did:key.
-	public_b64 = b64_256
 
 	unsigned_op := CreatePlcOperation{
 		Type: "plc_operation",
@@ -147,8 +137,6 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 	if err != nil {
 		return nil, fmt.Errorf("unsigned CBOR marshal: %w", err)
 	}
-
-	// sig := ed25519.Sign(private_key, unsigned_b)
 
 	// hash unsigned_b because that is what blacksky does...
 	// https://github.com/blacksky-algorithms/rsky/blob/main/rsky-common/src/sign.rs#L8
@@ -189,42 +177,11 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 
 	// https://atproto.com/specs/cryptography
 
-	derPub, err := x509.MarshalPKIXPublicKey(public_256)
+	public_mb, err := multibase.Encode(multibase.Base58BTC, public_x509)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to derive multibase encoding for public key, %w", err)
 	}
-
-	public_mb, err := multibase.Encode(multibase.Base58BTC, derPub)
-
-	// combined := append([]byte(MB_ED25519), public_key...)
-	// public_mb, err := multibase.Encode(multibase.Base58BTC, combined)
-
-	if err != nil {
-		return nil, err
-	}
-
-	// START OF code for sanity-checking the multibase encoding
-	/*
-
-		_, body, err := multibase.Decode(public_mb)
-
-		if err != nil {
-			return nil, err
-		}
-
-		if len(body) < 2 {
-			return nil, fmt.Errorf("Decode key too short")
-		}
-
-		pk := ed25519.PublicKey(body[2:])
-
-		if !pk.Equal(public_key) {
-			return nil, fmt.Errorf("Failed to encode/decode multibase public key")
-		}
-
-	*/
-	// END OF code for sanity-checking the multibase encoding
 
 	did_id := fmt.Sprintf("%s:%s", DID_PLC, str_did)
 
@@ -257,7 +214,7 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 	rsp := &NewDIDResult{
 		DID:             did,
 		CreateOperation: signed_op,
-		PrivateKey:      private_key,
+		PrivateKey:      private_256,
 	}
 
 	return rsp, nil
