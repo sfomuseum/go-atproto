@@ -1,16 +1,19 @@
 package api
 
 // https://web.plc.directory/api/redoc#operation/CreatePlcOp
+// https://github.com/did-method-plc/did-method-plc/blob/main/packages/server/src/routes.ts#L114
+// https://github.com/did-method-plc/did-method-plc/blob/main/packages/server/src/constraints.ts#L21 	<-- validateIncomingOp
+// https://github.com/did-method-plc/did-method-plc/blob/main/packages/server/src/db/index.ts#L101 	<-- validateAndAddOp
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
+	_ "log/slog"
 	"net/http"
 
-	"io"
+	_ "io"
 	"os"
 	
 	"github.com/sfomuseum/go-atproto/plc"
@@ -19,6 +22,8 @@ import (
 type createPlcError struct {
 	Message string `json:"message"`
 }
+
+// https://github.com/bluesky-social/indigo/blob/main/plc/client.go#L61
 
 func CreatePlc(ctx context.Context, str_did string, op plc.CreatePlcOperationSigned) error {
 
@@ -43,6 +48,9 @@ func CreatePlc(ctx context.Context, str_did string, op plc.CreatePlcOperationSig
 	
 	req2 := req.Clone(ctx)
 	req2.Write(os.Stdout)
+
+	// Currently failing here because... ???
+	// https://github.com/did-method-plc/did-method-plc/blob/main/packages/server/src/constraints.ts#L30-L45
 	
 	rsp, err := http.DefaultClient.Do(req)
 
@@ -51,13 +59,13 @@ func CreatePlc(ctx context.Context, str_did string, op plc.CreatePlcOperationSig
 	}
 
 	defer rsp.Body.Close()
-
+	
 	if rsp.StatusCode != 200 {
 
+		/*
 		var m *createPlcError
 
 		body, _ := io.ReadAll(rsp.Body)
-		slog.Error("WTF", "body", string(body))
 		
 		err := json.Unmarshal(body, &m)
 
@@ -65,8 +73,9 @@ func CreatePlc(ctx context.Context, str_did string, op plc.CreatePlcOperationSig
 			slog.Error("Failed to decode response (error) body", "error", err)
 			return fmt.Errorf("Request failed with error code %s", rsp.Status)
 		}
-
-		return fmt.Errorf("Request failed with error code %s: %s", rsp.Status, m.Message)
+		*/
+		
+		return fmt.Errorf("Request failed with error code %d: %s", rsp.StatusCode, rsp.Status)
 	}
 
 	return nil

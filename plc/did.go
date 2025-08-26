@@ -13,6 +13,8 @@ import (
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/multiformats/go-multibase"
+	"github.com/bluesky-social/indigo"
+	indigo_plc "github.com/bluesky-social/indigo/plc"	
 )
 
 // https://atproto.com/specs/did
@@ -63,6 +65,9 @@ type NewDIDResult struct {
 	PrivateKey      ed25519.PrivateKey
 }
 
+// https://github.com/bluesky-social/indigo/blob/main/atproto/identity/identity.go#L42	<-- ParseIdentity (from DIDDoc)
+// https://github.com/bluesky-social/indigo/blob/8be102876fb7e638aa4c9ed6c9d4991ca19a0973/atproto/identity/diddoc.go#L7	<-- DIDDocument
+
 func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, error) {
 
 	// https://web.plc.directory/spec/v0.1/did-plc
@@ -76,6 +81,9 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 		return nil, fmt.Errorf("key generation: %w", err)
 	}
 
+	// https://github.com/bluesky-social/indigo/blob/8be102876fb7e638aa4c9ed6c9d4991ca19a0973/plc/client.go#L71 <-- CreateDID... WUT???
+	// https://github.com/bluesky-social/indigo/blob/8be102876fb7e638aa4c9ed6c9d4991ca19a0973/cmd/gosky/did.go#L79
+	
 	// Construct an “unsigned” regular operation object.
 	// Include a prev field with null value. do not use the deprecated/legacy operation format for new DID creations
 
