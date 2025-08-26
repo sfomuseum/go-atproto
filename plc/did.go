@@ -89,7 +89,16 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 		return nil, fmt.Errorf("Failed to derive publi key bytes", err)
 	}
 
-	public_b64 := base64.StdEncoding.EncodeToString(public_key_b)
+	prefix_mb := []byte{0x80, 0x12}
+	data_mb := append(prefix_mb, public_key_b...)
+
+	public_mb, err := multibase.Encode(multibase.Base58BTC, data_mb)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to derive multibase encoding for public key, %w", err)
+	}
+
+	verification_key := fmt.Sprintf("%s:%s", DID_KEY, public_mb)
 
 	// Construct an “unsigned” regular operation object.
 	// Include a prev field with null value. do not use the deprecated/legacy operation format for new DID creations
@@ -97,10 +106,10 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 	unsigned_op := CreatePlcOperation{
 		Type: "plc_operation",
 		VerificationMethods: map[string]string{
-			"atproto": fmt.Sprintf("%s:%s", DID_KEY, public_b64),
+			"atproto": verification_key,
 		},
 		RotationKeys: []string{
-			fmt.Sprintf("%s:%s", DID_KEY, public_b64),
+			verification_key,
 		},
 		AlsoKnownAs: []string{fmt.Sprintf("at://%s", handle)},
 		Services: map[string]CreatePlcService{
@@ -165,17 +174,6 @@ func NewDID(ctx context.Context, host string, handle string) (*NewDIDResult, err
 	}
 
 	str_did := hash_b32[:24]
-
-	// https://atproto.com/specs/cryptography
-
-	prefix_mb := []byte{0x80, 0x12}
-	data_mb := append(prefix_mb, public_key_b...)
-
-	public_mb, err := multibase.Encode(multibase.Base58BTC, data_mb)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to derive multibase encoding for public key, %w", err)
-	}
 
 	did_id := fmt.Sprintf("%s:%s", DID_PLC, str_did)
 
