@@ -12,17 +12,17 @@ import (
 func main() {
 
 	var account_handle string
-	var account_host string
+	var account_service string
 	var newline bool
 
 	flag.StringVar(&account_handle, "handle", "", "The ATProto handle to lookup.")
-	flag.StringVar(&account_host, "host", "", "The ATProto hostname to query for the handle lookup.")
+	flag.StringVar(&account_service, "service", "", "The ATProto servicename to query for the handle lookup.")
 	flag.BoolVar(&newline, "with-newline", false, "Print final DID with trailing newline.")
 	flag.Parse()
 
 	ctx := context.Background()
 
-	str_did, err := plc.ResolveHandle(ctx, account_handle, account_host)
+	str_did, err := plc.ResolveHandle(ctx, account_service, account_handle)
 
 	if err != nil {
 		log.Fatal(err)

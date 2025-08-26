@@ -12,16 +12,19 @@ type resolveHandleResponse struct {
 	DID string `json:"did"`
 }
 
-// ResolveHandle resolve a handle (composed of 'handle' + "." + 'host') to its unique DID identifer by
-// querying the "com.atproto.identity.resolveHandle" endpoint of 'host'.
-func ResolveHandle(ctx context.Context, handle string, host string) (string, error) {
+// ResolveHandle resolve a handle (composed of 'handle' + "." + 'service') to its unique DID identifer by
+// querying the "com.atproto.identity.resolveHandle" endpoint of 'service'.
+func ResolveHandle(ctx context.Context, service string, handle string) (string, error) {
 
 	q := url.Values{}
-	q.Set("handle", fmt.Sprintf("%s.%s", handle, host))
+	q.Set("handle", handle)
 
-	u := url.URL{}
-	u.Scheme = "https"
-	u.Host = host
+	u, err := url.Parse(service)
+
+	if err != nil {
+		return "", fmt.Errorf("Failed to parse service URL, %w", err)
+	}
+
 	u.Path = "/xrpc/com.atproto.identity.resolveHandle"
 	u.RawQuery = q.Encode()
 
