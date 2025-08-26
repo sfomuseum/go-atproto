@@ -14,7 +14,7 @@ type PlcOperation struct {
 	RotationKeys        []string                       `cbor:"rotationKeys" json:"rotationKeys"`
 	AlsoKnownAs         []string                       `cbor:"alsoKnownAs" json:"alsoKnownAs"`
 	Services            map[string]PlcOperationService `cbor:"services" json:"services"`
-	Prev                interface{}                    `cbor:"prev" json:"prev"`
+	Prev                interface{}                    `cbor:"prev,omitempty" json:"prev,omitempty"`
 }
 
 type PlcOperationSigned struct {
