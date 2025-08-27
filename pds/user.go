@@ -3,9 +3,11 @@ package pds
 import (
 	"context"
 	"fmt"
+	_ "net/http"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/identity"
+	_ "github.com/bluesky-social/indigo/plc"
 	"github.com/sfomuseum/go-atproto/plc"
 	"github.com/sfomuseum/go-atproto/plc/api"
 )
@@ -20,17 +22,35 @@ type User struct {
 	LastModified int64                 `json:"lastmodified"`
 }
 
-func CreateUser(ctx context.Context, host string, handle string) (*User, error) {
+func CreateUser(ctx context.Context, service string, handle string) (*User, error) {
 
-	rsp, err := plc.NewDID(ctx, host, handle)
+	rsp, err := plc.NewDID(ctx, service, handle)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create new DID, %w", err)
 	}
 
-	did := rsp.DID
+	doc := rsp.DID
+	id := doc.DID.String()
 
-	id := did.DID.String()
+	/*
+		s := at_plc.PLCServer{
+			Host: "https://plc.directory",
+			C: http.DefaultClient,
+		}
+
+		private_key := rsp.PrivateKey
+		public_key := private_key.Public()
+		public_mb := public_key.MultibaseString()
+
+		rsp2, err := s.CreateDID(ctx, rsp.PrivateKey, public_mb, handle, service)
+
+		if err != nil {
+			return nil, err
+		}
+
+		fmt.Println("OK", rsp2)
+	*/
 
 	err = api.Create(ctx, id, rsp.PlcOperation)
 
@@ -42,7 +62,7 @@ func CreateUser(ctx context.Context, host string, handle string) (*User, error) 
 
 	u := &User{
 		Id:     id,
-		DID:    did,
+		DID:    doc,
 		Handle: handle,
 	}
 
