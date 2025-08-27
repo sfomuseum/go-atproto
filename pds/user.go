@@ -34,6 +34,7 @@ func CreateUser(ctx context.Context, service string, handle string) (*User, erro
 	id := doc.DID.String()
 
 	/*
+
 		s := at_plc.PLCServer{
 			Host: "https://plc.directory",
 			C: http.DefaultClient,
@@ -41,7 +42,7 @@ func CreateUser(ctx context.Context, service string, handle string) (*User, erro
 
 		private_key := rsp.PrivateKey
 		public_key := private_key.Public()
-		public_mb := public_key.MultibaseString()
+		recovery_key := public_key.DID()
 
 		rsp2, err := s.CreateDID(ctx, rsp.PrivateKey, public_mb, handle, service)
 
@@ -50,6 +51,7 @@ func CreateUser(ctx context.Context, service string, handle string) (*User, erro
 		}
 
 		fmt.Println("OK", rsp2)
+
 	*/
 
 	err = api.Create(ctx, id, rsp.PlcOperation)
