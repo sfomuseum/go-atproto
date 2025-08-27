@@ -6,11 +6,13 @@ import (
 	"crypto/sha256"
 	"encoding/base32"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 
+	"github.com/bluesky-social/indigo/atproto/data"
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"github.com/fxamacker/cbor/v2"
+	_ "github.com/fxamacker/cbor/v2"
 	"github.com/whyrusleeping/go-did"
 )
 
@@ -46,18 +48,6 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 
 	verification_key := fmt.Sprintf("%s:%s", DID_KEY, public_mb)
 
-	/*
-		rot_private_key, err := did.GeneratePrivKey(rand.Reader, did.KeyTypeP256)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to generate private key, %w", err)
-		}
-
-		rot_public_key := rot_private_key.Public()
-		rot_public_mb := rot_public_key.MultibaseString()
-		rotation_key := fmt.Sprintf("%s:%s", DID_KEY, rot_public_mb)
-	*/
-
 	// Construct an “unsigned” regular operation object.
 	// Include a prev field with null value. do not use the deprecated/legacy operation format for new DID creations
 
@@ -82,19 +72,27 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 	// Serialize the “unsigned” operation with DAG-CBOR, and sign the resulting bytes with one of the initial rotationKeys.
 	// Encode the signature as base64url, and use that to construct a “signed” operation object
 
-	enc_opts := cbor.CanonicalEncOptions()
-
-	enc_mode, err := enc_opts.EncMode()
+	unsigned_b, err := marshalCBOR(unsigned_op)
 
 	if err != nil {
-		return nil, fmt.Errorf("cbor encoder: %w", err)
+		return nil, fmt.Errorf("Failed to marshal unsigned op to CBOR, %w", err)
 	}
 
-	unsigned_b, err := enc_mode.Marshal(unsigned_op)
+	/*
+		enc_opts := cbor.CanonicalEncOptions()
 
-	if err != nil {
-		return nil, fmt.Errorf("unsigned CBOR marshal: %w", err)
-	}
+		enc_mode, err := enc_opts.EncMode()
+
+		if err != nil {
+			return nil, fmt.Errorf("cbor encoder: %w", err)
+		}
+
+		unsigned_b, err := enc_mode.Marshal(unsigned_op)
+
+		if err != nil {
+			return nil, fmt.Errorf("unsigned CBOR marshal: %w", err)
+		}
+	*/
 
 	sig, err := private_key.Sign(unsigned_b)
 
@@ -108,11 +106,15 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 		Signature:    sig_b64,
 	}
 
-	signed_enc, err := enc_mode.Marshal(signed_op)
+	signed_enc, err := marshalCBOR(signed_op)
 
 	if err != nil {
 		return nil, fmt.Errorf("signed CBOR marshal: %w", err)
 	}
+
+	/*
+		signed_enc, err := enc_mode.Marshal(signed_op)
+	*/
 
 	hash := sha256.Sum256(signed_enc)
 
@@ -160,4 +162,27 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 	}
 
 	return rsp, nil
+}
+
+func marshalCBOR(obj any) ([]byte, error) {
+
+	// While it may seem counter-intuitive to JSON-marshal/unmarshal PlcOperation structs
+	// in to a map[string]any that's what the atproto/data package wants and since both
+	// the JSON and CBOR encoding share the same serilization values it will do for now
+	// (or at least until I can figure out why plc.directory registrations are failing).
+
+	tmp, err := json.Marshal(obj)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var tmp_map map[string]any
+	err = json.Unmarshal(tmp, &tmp_map)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return data.MarshalCBOR(tmp_map)
 }
