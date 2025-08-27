@@ -1,4 +1,4 @@
-# go-pds
+# go-atproto
 
 Experimental Go package implementing an ATProto Personal Data Server (pds).
 
