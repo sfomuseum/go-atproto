@@ -1,4 +1,4 @@
-# go-pds
+# go-atproto
 
 Experimental Go package implementing an ATProto Personal Data Server (pds).
 
@@ -8,7 +8,7 @@ This is experimental work to implement a "minimal viable" ATProto Personal Data 
 
 ## Important
 
-This work is incomplete and, in some notable cases, does not work. Specifically attempts to create, or register, new `did:plc` identifiers with the `https://plc.directory` fails with opaquer "Bad Request" errors. For example:
+This work is incomplete and, in some notable cases, does not work. Specifically attempts to create, or register, new `did:plc` identifiers with the `https://plc.directory` fails with opaque "Bad Request" errors. For example:
 
 ```
 $> go run cmd/pds-create-user/main.go -handle test939834748 -service https://atproto.sfomuseum.org
@@ -46,4 +46,4 @@ Content-Type: application/json
 2025/08/26 18:04:04 Failed to run create user, Failed to create PLC for DID, Failed to execute request, Post "https://plc.directory/did:plc:5NVS7CU7SB5FAUWH5GB7V5RZ": dial tcp 3.129.34.168:443: connect: bad file descriptor
 ```
 
-It is not clear to me what the problem is.
+It is not clear to me what the problem is yet.
