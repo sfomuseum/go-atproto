@@ -6,27 +6,28 @@ import (
 	"strings"
 
 	"github.com/bluesky-social/indigo/atproto/crypto"
-	_ "github.com/bluesky-social/indigo/atproto/data"
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/did-method-plc/go-didplc"
-	"github.com/whyrusleeping/go-did"
 )
 
-// https://atproto.com/specs/did
-
-// For reference, this is what Blacksky does:
-// https://github.com/blacksky-algorithms/rsky/blob/main/rsky-pds/src/plc/operations.rs#L50C5-L58C46
-// https://github.com/blacksky-algorithms/rsky/blob/main/rsky-pds/src/plc/operations.rs#L281
-// https://github.com/blacksky-algorithms/rsky/blob/main/rsky-common/src/sign.rs#L8
-
+// NewDIDResults is a struct wrapping items created by the `NewDID` method.
 type NewDIDResult struct {
-	DID          *identity.DIDDocument
-	PlcOperation didplc.RegularOp
-	PrivateKey   *crypto.PrivateKeyK256
+	// The `identity.DIDDocument` instance wrapping a given handle at a service.
+	DID *identity.DIDDocument
+	// The signed PLC (regular) operation used to create the DID which can be submitted to a PLC directory service as a separate task.
+	Operation didplc.Operation
+	// The private signing key that was created for the new DID.
+	PrivateKey *crypto.PrivateKeyK256
 }
 
+// NewDID generates a new `identity.DIDDocument` for 'handle' at 'service' and returns a signed `didplc.Operation`
+// which can be submitted to a PLC directory service as a separate task. The identity document, signed operations
+// as well as the private signing key associated with the DID are returned in a `NewDIDResult` struct.
 func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, error) {
+
+	// This basically follows the same logic/code defined in bluesky-social/goat
+	// https://github.com/bluesky-social/goat/blob/main/plc.go#L416
 
 	handle = strings.TrimPrefix(handle, "at://")
 	parsed_handle, err := syntax.ParseHandle(handle)
@@ -103,12 +104,6 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 		return nil, fmt.Errorf("Failed to derive DID for op, %w", err)
 	}
 
-	_, err = did.ParseDID(did_id)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to parse plc did, %w", err)
-	}
-
 	doc := &identity.DIDDocument{
 		DID:         syntax.DID(did_id),
 		AlsoKnownAs: op.AlsoKnownAs,
@@ -129,10 +124,20 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 		},
 	}
 
+	oe := didplc.OpEnum{
+		Regular: &op,
+	}
+
+	as_op := oe.AsOperation()
+
+	if as_op == nil {
+		return nil, fmt.Errorf("Failed to derive operation")
+	}
+
 	rsp := &NewDIDResult{
-		DID:          doc,
-		PlcOperation: op,
-		PrivateKey:   private_key,
+		DID:        doc,
+		Operation:  as_op,
+		PrivateKey: private_key,
 	}
 
 	return rsp, nil
