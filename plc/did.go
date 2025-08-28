@@ -29,7 +29,7 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 	// This basically follows the same logic/code defined in bluesky-social/goat
 	// https://github.com/bluesky-social/goat/blob/main/plc.go#L416
 
-	handle = strings.TrimPrefix(handle, "at://")
+	handle = strings.TrimPrefix(handle, AT_SCHEME)
 	parsed_handle, err := syntax.ParseHandle(handle)
 
 	if err != nil {
@@ -71,7 +71,7 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 	}
 
 	also_known_as := []string{
-		fmt.Sprintf("at://%s", parsed_handle),
+		fmt.Sprintf("%s%s", AT_SCHEME, parsed_handle),
 	}
 
 	rotation_keys := []string{
