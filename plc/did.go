@@ -143,7 +143,8 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 	return rsp, nil
 }
 
-func TombstoneDID(ctx context.Context, doc *identity.DIDDocument, prev string, private_key *crypto.PrivateKeyK256) error {
+// TombstoneDID will issue a tombstone for 'did' and 'prev' (CID). Currently this uses the "default" PLC client which assumes as 'plc.directory'.
+func TombstoneDID(ctx context.Context, did string, prev string, private_key *crypto.PrivateKeyK256) (didplc.Operation, error) {
 
 	op := didplc.TombstoneOp{
 		Type: "plc_tombstone",
@@ -153,34 +154,37 @@ func TombstoneDID(ctx context.Context, doc *identity.DIDDocument, prev string, p
 	err := op.Sign(private_key)
 
 	if err != nil {
-		return fmt.Errorf("Failed to sign op, %w", err)
+		return nil, fmt.Errorf("Failed to sign op, %w", err)
 	}
 
-	var atproto_key string
-
-	for _, m := range doc.VerificationMethod {
-
-		if strings.HasSuffix(m.ID, "#atproto") && m.Controller == doc.DID.String() {
-			atproto_key = m.PublicKeyMultibase
-			break
-		}
-	}
-
-	if atproto_key == "" {
-		return fmt.Errorf("Missing atproto verification method")
-	}
-
-	public_key, err := crypto.ParsePublicMultibase(atproto_key)
+	public_key, err := private_key.PublicKey()
 
 	if err != nil {
-		return fmt.Errorf("Failed to derive public key, %w", err)
+		return nil, fmt.Errorf("Failed to derive private key, %w", err)
 	}
 
 	err = op.VerifySignature(public_key)
 
 	if err != nil {
-		return fmt.Errorf("Failed to verify signature for operation, %w", err)
+		return nil, fmt.Errorf("Failed to verify signature for operation, %w", err)
 	}
 
-	return nil
+	oe := didplc.OpEnum{
+		Tombstone: &op,
+	}
+
+	as_op := oe.AsOperation()
+
+	if as_op == nil {
+		return nil, fmt.Errorf("Failed to derive as operation")
+	}
+
+	cl := DefaultClient()
+	err = cl.Submit(ctx, did, as_op)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to submit tombstone operation, %w", err)
+	}
+
+	return as_op, nil
 }
