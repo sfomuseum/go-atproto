@@ -3,6 +3,7 @@ package pds
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/identity"
@@ -30,11 +31,16 @@ func CreateUser(ctx context.Context, service string, handle string) (*User, erro
 	doc := rsp.DID
 	id := doc.DID.String()
 
+	op := rsp.Operation
+	cid := op.CID().String()
+
+	slog.Info("OK", "did", id, "cid", cid, "pk", rsp.PrivateKey.Multibase())
+
 	// https://github.com/did-method-plc/go-didplc/blob/main/cmd/plcli/main.go#L286
 
 	cl := plc.DefaultClient()
 
-	err = cl.Submit(ctx, id, rsp.Operation)
+	err = cl.Submit(ctx, id, op)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to submit operation, %w", err)
