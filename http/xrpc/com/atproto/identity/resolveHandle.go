@@ -61,7 +61,7 @@ func ResolveHandleHandler(opts *ResolveHandleHandlerOptions) (http.Handler, erro
 			return
 		}
 
-		rsp.Write([]byte(rec.Id))
+		rsp.Write([]byte(rec.DID))
 	}
 
 	return http.HandlerFunc(fn), nil

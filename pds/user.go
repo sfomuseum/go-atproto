@@ -11,11 +11,8 @@ import (
 )
 
 type User struct {
-	Id           string                `json:"id"`
-	DID          *identity.DIDDocument `json:"did"`
-	PrivateKey   string                `json:"private_key"`
-	Handle       string                `json:"handle"`
-	Aliases      []*Alias              `json:"aliases"`
+	DID          string                `json:"did"`
+	DIDDocument  *identity.DIDDocument `json:"did_document"`
 	Created      int64                 `json:"created"`
 	LastModified int64                 `json:"lastmodified"`
 }
@@ -49,9 +46,9 @@ func CreateUser(ctx context.Context, service string, handle string) (*User, erro
 	// To do: Private key, wut??
 
 	u := &User{
-		Id:     id,
-		DID:    doc,
-		Handle: handle,
+		DID:         id,
+		DIDDocument: doc,
+		// Handle: handle,
 	}
 
 	return u, nil
