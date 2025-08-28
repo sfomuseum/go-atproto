@@ -95,13 +95,13 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 	err = op.VerifySignature(public_key)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to verify signature for op, %w", err)
+		return nil, fmt.Errorf("Failed to verify signature for operation, %w", err)
 	}
 
 	did_id, err := op.DID()
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to derive DID for op, %w", err)
+		return nil, fmt.Errorf("Failed to derive DID from operation, %w", err)
 	}
 
 	doc := &identity.DIDDocument{
@@ -131,7 +131,7 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 	as_op := oe.AsOperation()
 
 	if as_op == nil {
-		return nil, fmt.Errorf("Failed to derive operation")
+		return nil, fmt.Errorf("Failed to derive as operation")
 	}
 
 	rsp := &NewDIDResult{
