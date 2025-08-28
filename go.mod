@@ -8,9 +8,7 @@ require (
 	github.com/aaronland/gocloud v1.0.0
 	github.com/bluesky-social/indigo v0.0.0-20250813051257-8be102876fb7
 	github.com/fxamacker/cbor/v2 v2.9.0
-	github.com/ipfs/go-cid v0.4.1
 	github.com/sfomuseum/go-flags v0.11.0
-	github.com/whyrusleeping/cbor-gen v0.2.1-0.20241030202151-b7a6831be65e
 	github.com/whyrusleeping/go-did v0.0.0-20240828165449-bcaa7ae21371
 	gocloud.dev v0.43.0
 )
@@ -31,6 +29,7 @@ require (
 	github.com/hashicorp/golang-lru/arc/v2 v2.0.6 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/ipfs/go-block-format v0.2.0 // indirect
+	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-ipfs-util v0.0.3 // indirect
 	github.com/ipfs/go-ipld-cbor v0.1.0 // indirect
 	github.com/ipfs/go-ipld-format v0.6.0 // indirect
@@ -60,6 +59,7 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/whosonfirst/go-ioutil v1.0.2 // indirect
 	github.com/whosonfirst/go-sanitize v0.1.0 // indirect
+	github.com/whyrusleeping/cbor-gen v0.2.1-0.20241030202151-b7a6831be65e // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	gitlab.com/yawning/secp256k1-voi v0.0.0-20230925100816-f2616030848b // indirect
 	gitlab.com/yawning/tuplehash v0.0.0-20230713102510-df83abbf9a02 // indirect

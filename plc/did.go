@@ -2,7 +2,6 @@ package plc
 
 import (
 	"context"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base32"
 	"encoding/base64"
@@ -10,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/bluesky-social/indigo/atproto/data"
+	"github.com/bluesky-social/indigo/atproto/crypto"	
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	_ "github.com/fxamacker/cbor/v2"
@@ -26,7 +26,7 @@ import (
 type NewDIDResult struct {
 	DID          *identity.DIDDocument
 	PlcOperation PlcOperationSigned
-	PrivateKey   *did.PrivKey
+	PrivateKey   *crypto.PrivateKeyK256
 }
 
 func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, error) {
@@ -37,16 +37,21 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 	// Collect values for the essential operation data fields, including generating new secure key pairs if necessary
 	// Only secp256k1 (“k256”) and NIST P-256 (“p256”) keys are currently supported for rotation keys, whereas verificationMethods keys can be any syntactically-valid did:key.
 
-	private_key, err := did.GeneratePrivKey(rand.Reader, did.KeyTypeP256)
-
+	private_key, err := crypto.GeneratePrivateKeyK256()
+	
 	if err != nil {
 		return nil, fmt.Errorf("Failed to generate private key, %w", err)
 	}
 
-	public_key := private_key.Public()
-	public_mb := public_key.MultibaseString()
+	public_key, err := private_key.PublicKey()
 
-	verification_key := fmt.Sprintf("%s:%s", DID_KEY, public_mb)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to derive public key, %w", err)
+	}
+	
+	// public_mb := public_key.MultibaseString()
+
+	verification_key := public_key.DIDKey()
 
 	// Construct an “unsigned” regular operation object.
 	// Include a prev field with null value. do not use the deprecated/legacy operation format for new DID creations
