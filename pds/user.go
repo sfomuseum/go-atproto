@@ -9,7 +9,7 @@ import (
 	"github.com/bluesky-social/indigo/atproto/identity"
 	_ "github.com/bluesky-social/indigo/plc"
 	"github.com/sfomuseum/go-atproto/plc"
-	"github.com/sfomuseum/go-atproto/plc/api"
+	_ "github.com/sfomuseum/go-atproto/plc/api"
 )
 
 type User struct {
@@ -34,31 +34,12 @@ func CreateUser(ctx context.Context, service string, handle string) (*User, erro
 	id := doc.DID.String()
 
 	/*
-
-		s := at_plc.PLCServer{
-			Host: "https://plc.directory",
-			C: http.DefaultClient,
-		}
-
-		private_key := rsp.PrivateKey
-		public_key := private_key.Public()
-		recovery_key := public_key.DID()
-
-		rsp2, err := s.CreateDID(ctx, rsp.PrivateKey, public_mb, handle, service)
+		err = api.Create(ctx, id, rsp.PlcOperation)
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to create PLC for DID, %w", err)
 		}
-
-		fmt.Println("OK", rsp2)
-
 	*/
-
-	err = api.Create(ctx, id, rsp.PlcOperation)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create PLC for DID, %w", err)
-	}
 
 	// To do: Private key, wut??
 

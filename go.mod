@@ -7,6 +7,7 @@ require (
 	github.com/aaronland/go-roster v1.0.0
 	github.com/aaronland/gocloud v1.0.0
 	github.com/bluesky-social/indigo v0.0.0-20250813051257-8be102876fb7
+	github.com/did-method-plc/go-didplc v0.0.0-20250716171643-635da8b4e038
 	github.com/fxamacker/cbor/v2 v2.9.0
 	github.com/sfomuseum/go-flags v0.11.0
 	github.com/whyrusleeping/go-did v0.0.0-20240828165449-bcaa7ae21371

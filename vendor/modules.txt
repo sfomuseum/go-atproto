@@ -42,6 +42,9 @@ github.com/cespare/xxhash/v2
 # github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0
 ## explicit; go 1.17
 github.com/decred/dcrd/dcrec/secp256k1/v4
+# github.com/did-method-plc/go-didplc v0.0.0-20250716171643-635da8b4e038
+## explicit; go 1.24
+github.com/did-method-plc/go-didplc
 # github.com/fxamacker/cbor/v2 v2.9.0
 ## explicit; go 1.20
 github.com/fxamacker/cbor/v2
