@@ -3,13 +3,10 @@ package pds
 import (
 	"context"
 	"fmt"
-	_ "net/http"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/identity"
-	_ "github.com/bluesky-social/indigo/plc"
 	"github.com/sfomuseum/go-atproto/plc"
-	"github.com/sfomuseum/go-atproto/plc/api"
 )
 
 type User struct {
@@ -33,31 +30,14 @@ func CreateUser(ctx context.Context, service string, handle string) (*User, erro
 	doc := rsp.DID
 	id := doc.DID.String()
 
-	/*
+	// https://github.com/did-method-plc/go-didplc/blob/main/cmd/plcli/main.go#L286
 
-		s := at_plc.PLCServer{
-			Host: "https://plc.directory",
-			C: http.DefaultClient,
-		}
+	cl := plc.DefaultClient()
 
-		private_key := rsp.PrivateKey
-		public_key := private_key.Public()
-		recovery_key := public_key.DID()
-
-		rsp2, err := s.CreateDID(ctx, rsp.PrivateKey, public_mb, handle, service)
-
-		if err != nil {
-			return nil, err
-		}
-
-		fmt.Println("OK", rsp2)
-
-	*/
-
-	err = api.Create(ctx, id, rsp.PlcOperation)
+	err = cl.Submit(ctx, id, rsp.Operation)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create PLC for DID, %w", err)
+		return nil, fmt.Errorf("Failed to submit operation, %w", err)
 	}
 
 	// To do: Private key, wut??
