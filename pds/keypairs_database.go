@@ -11,10 +11,15 @@ import (
 	"github.com/aaronland/go-roster"
 )
 
+type ListKeyPairsOptions struct {
+	DID string
+}
+
 type KeyPairsDatabase interface {
 	GetKeyPair(context.Context, string, string) (*KeyPair, error)
 	AddKeyPair(context.Context, *KeyPair) error
-	ListKeyPairs(context.Context) iter.Seq2[*KeyPair, error]
+	DeleteKeyPair(context.Context, *KeyPair) error
+	ListKeyPairs(context.Context, *ListKeyPairsOptions) iter.Seq2[*KeyPair, error]
 	Close() error
 }
 
