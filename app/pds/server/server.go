@@ -30,7 +30,7 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
 func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
-	var users_db pds.UsersDatabase
+	var accounts_db pds.AccountsDatabase
 	var records_db pds.RecordsDatabase
 
 	mux := http.NewServeMux()
@@ -38,7 +38,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 	// Resolve handle
 
 	resolve_handle_opts := &identity.ResolveHandleHandlerOptions{
-		UsersDatabase: users_db,
+		AccountsDatabase: accounts_db,
 	}
 
 	resolve_handle, err := identity.ResolveHandleHandler(resolve_handle_opts)

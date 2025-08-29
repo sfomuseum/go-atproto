@@ -65,16 +65,27 @@ func NewSQLOperationsDatabase(ctx context.Context, uri string) (OperationsDataba
 
 func (db *SQLOperationsDatabase) GetOperation(ctx context.Context, cid string) (*Operation, error) {
 
-	q := "SELECT did, str_op, created, lastmodified FROM operations where cid = ?"
+	q := "SELECT cid, did, str_op, created, lastmodified FROM operations where cid = ?"
+	return db.getOperation(ctx, q, cid)
+}
 
-	row := db.conn.QueryRowContext(ctx, q, cid)
+func (db *SQLOperationsDatabase) GetLastOperationForDID(ctx context.Context, did string) (*Operation, error) {
 
+	q := "SELECT cid, did, str_op, created, lastmodified FROM operations where did = ? ORDER BY created DESC LIMIT 1"
+	return db.getOperation(ctx, q, did)
+}
+
+func (db *SQLOperationsDatabase) getOperation(ctx context.Context, q string, args ...interface{}) (*Operation, error) {
+
+	row := db.conn.QueryRowContext(ctx, q, args...)
+
+	var cid string
 	var did string
 	var str_op string
 	var created int64
 	var lastmod int64
 
-	err := row.Scan(&did, str_op, &created, &lastmod)
+	err := row.Scan(&cid, &did, str_op, &created, &lastmod)
 
 	if err != nil {
 
@@ -134,7 +145,7 @@ func (db *SQLOperationsDatabase) DeleteOperation(ctx context.Context, op *Operat
 	return nil
 }
 
-func (db *SQLOperationsDatabase) ListOperations(ctx context.Context) iter.Seq2[*Operation, error] {
+func (db *SQLOperationsDatabase) ListOperations(ctx context.Context, opts *ListOperationsOptions) iter.Seq2[*Operation, error] {
 
 	return func(yield func(*Operation, error) bool) {
 

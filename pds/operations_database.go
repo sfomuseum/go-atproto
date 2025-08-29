@@ -11,10 +11,15 @@ import (
 	"github.com/aaronland/go-roster"
 )
 
+type ListOperationsOptions struct {
+	DID string
+}
+
 type OperationsDatabase interface {
 	GetOperation(context.Context, string) (*Operation, error)
+	GetLastOperationForDID(context.Context, string) (*Operation, error)
 	AddOperation(context.Context, *Operation) error
-	ListOperations(context.Context) iter.Seq2[*Operation, error]
+	ListOperations(context.Context, *ListOperationsOptions) iter.Seq2[*Operation, error]
 	Close() error
 }
 

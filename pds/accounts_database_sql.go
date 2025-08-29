@@ -13,22 +13,22 @@ import (
 	"github.com/sfomuseum/go-atproto"
 )
 
-type SQLUsersDatabase struct {
-	UsersDatabase
+type SQLAccountsDatabase struct {
+	AccountsDatabase
 	conn *sql.DB
 }
 
 func init() {
 
 	ctx := context.Background()
-	err := RegisterUsersDatabase(ctx, "sql", NewSQLUsersDatabase)
+	err := RegisterAccountsDatabase(ctx, "sql", NewSQLAccountsDatabase)
 
 	if err != nil {
 		panic(err)
 	}
 }
 
-func NewSQLUsersDatabase(ctx context.Context, uri string) (UsersDatabase, error) {
+func NewSQLAccountsDatabase(ctx context.Context, uri string) (AccountsDatabase, error) {
 
 	u, err := url.Parse(uri)
 
@@ -55,25 +55,35 @@ func NewSQLUsersDatabase(ctx context.Context, uri string) (UsersDatabase, error)
 		return nil, fmt.Errorf("Unable to create database (%s) because %v", engine, err)
 	}
 
-	db := &SQLUsersDatabase{
+	db := &SQLAccountsDatabase{
 		conn: conn,
 	}
 
 	return db, nil
 }
 
-func (db *SQLUsersDatabase) GetUser(ctx context.Context, did string) (*User, error) {
+func (db *SQLAccountsDatabase) GetAccount(ctx context.Context, did string) (*Account, error) {
 
-	q := "SELECT handle, created, lastmodified FROM users where did = ?"
+	q := "SELECT did, handle, created, lastmodified FROM accounts where did = ?"
+	return db.getAccount(ctx, q, did)
+}
 
-	row := db.conn.QueryRowContext(ctx, q, did)
+func (db *SQLAccountsDatabase) GetAccountWithHandle(ctx context.Context, handle string) (*Account, error) {
 
-	var str_doc string
+	q := "SELECT did, handle, created, lastmodified FROM accounts where handle = ?"
+	return db.getAccount(ctx, q, handle)
+}
+
+func (db *SQLAccountsDatabase) getAccount(ctx context.Context, q string, args ...any) (*Account, error) {
+
+	row := db.conn.QueryRowContext(ctx, q, args...)
+
+	var did string
 	var handle string
 	var created int64
 	var lastmod int64
 
-	err := row.Scan(&str_doc, &handle, &created, &lastmod)
+	err := row.Scan(&did, &handle, &created, &lastmod)
 
 	if err != nil {
 
@@ -96,7 +106,7 @@ func (db *SQLUsersDatabase) GetUser(ctx context.Context, did string) (*User, err
 		}
 	*/
 
-	u := &User{
+	u := &Account{
 		DID:          did,
 		Handle:       handle,
 		Created:      created,
@@ -106,67 +116,67 @@ func (db *SQLUsersDatabase) GetUser(ctx context.Context, did string) (*User, err
 	return u, err
 }
 
-func (db *SQLUsersDatabase) AddUser(ctx context.Context, user *User) error {
+func (db *SQLAccountsDatabase) AddAccount(ctx context.Context, account *Account) error {
 
 	/*
-		enc_doc, err := json.Marshal(user.DIDDocument)
+		enc_doc, err := json.Marshal(account.DIDDocument)
 
 		if err != nil {
 			return fmt.Errorf("Failed to encode DID document, %w", err)
 		}
 	*/
 
-	q := "INSERT INTO users (did, handle, created, lastmodified) VALUES (?, ?, ?, ?)"
+	q := "INSERT INTO accounts (did, handle, created, lastmodified) VALUES (?, ?, ?, ?)"
 
-	_, err := db.conn.ExecContext(ctx, q, user.DID, user.Handle, user.Created, user.LastModified)
+	_, err := db.conn.ExecContext(ctx, q, account.DID, account.Handle, account.Created, account.LastModified)
 
 	if err != nil {
-		return fmt.Errorf("Failed to add user, %w", err)
+		return fmt.Errorf("Failed to add account, %w", err)
 	}
 
 	return nil
 }
 
-func (db *SQLUsersDatabase) UpdateUser(ctx context.Context, user *User) error {
+func (db *SQLAccountsDatabase) UpdateAccount(ctx context.Context, account *Account) error {
 
 	/*
-		enc_doc, err := json.Marshal(user.DIDDocument)
+		enc_doc, err := json.Marshal(account.DIDDocument)
 
 		if err != nil {
 			return fmt.Errorf("Failed to encode DID document, %w", err)
 		}
 	*/
 
-	q := "UPDATE users SET handle = ?, lastmodified = ? WHERE did = ?"
+	q := "UPDATE accounts SET handle = ?, lastmodified = ? WHERE did = ?"
 
-	_, err := db.conn.ExecContext(ctx, q, user.Handle, user.LastModified, user.DID)
+	_, err := db.conn.ExecContext(ctx, q, account.Handle, account.LastModified, account.DID)
 
 	if err != nil {
-		return fmt.Errorf("Failed to update user, %w", err)
+		return fmt.Errorf("Failed to update account, %w", err)
 	}
 
 	return nil
 
 }
 
-func (db *SQLUsersDatabase) DeleteUser(ctx context.Context, user *User) error {
+func (db *SQLAccountsDatabase) DeleteAccount(ctx context.Context, account *Account) error {
 
-	q := "DELETE FROM users where did = ?"
+	q := "DELETE FROM accounts where did = ?"
 
-	_, err := db.conn.ExecContext(ctx, q, user.DID)
+	_, err := db.conn.ExecContext(ctx, q, account.DID)
 
 	if err != nil {
-		return fmt.Errorf("Failed to delete user, %w", err)
+		return fmt.Errorf("Failed to delete account, %w", err)
 	}
 
 	return nil
 }
 
-func (db *SQLUsersDatabase) ListUsers(ctx context.Context) iter.Seq2[*User, error] {
+func (db *SQLAccountsDatabase) ListAccounts(ctx context.Context) iter.Seq2[*Account, error] {
 
-	return func(yield func(*User, error) bool) {
+	return func(yield func(*Account, error) bool) {
 
-		q := "SELECT did, handle, created, lastmodified FROM users ORDER BY created DESC"
+		q := "SELECT did, handle, created, lastmodified FROM accounts ORDER BY created DESC"
 
 		rows, err := db.conn.QueryContext(ctx, q)
 
@@ -212,7 +222,7 @@ func (db *SQLUsersDatabase) ListUsers(ctx context.Context) iter.Seq2[*User, erro
 				}
 			*/
 
-			u := &User{
+			u := &Account{
 				DID:          did,
 				Handle:       handle,
 				Created:      created,
@@ -238,6 +248,6 @@ func (db *SQLUsersDatabase) ListUsers(ctx context.Context) iter.Seq2[*User, erro
 	}
 }
 
-func (db *SQLUsersDatabase) Close() error {
+func (db *SQLAccountsDatabase) Close() error {
 	return db.conn.Close()
 }

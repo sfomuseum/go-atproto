@@ -6,7 +6,7 @@ import (
 
 	_ "gocloud.dev/blob/memblob"
 
-	"github.com/sfomuseum/go-atproto/app/pds/user/create"
+	"github.com/sfomuseum/go-atproto/app/pds/account/create"
 	"github.com/sfomuseum/go-atproto/pds"
 )
 
@@ -14,7 +14,7 @@ func main() {
 
 	ctx := context.Background()
 
-	err := pds.RegisterBlobUsersSchemes(ctx)
+	err := pds.RegisterBlobAccountsSchemes(ctx)
 
 	if err != nil {
 		log.Fatalf("Failed to register blob schemes, %v", err)
@@ -23,6 +23,6 @@ func main() {
 	err = create.Run(ctx)
 
 	if err != nil {
-		log.Fatalf("Failed to run create user, %v", err)
+		log.Fatalf("Failed to run create account, %v", err)
 	}
 }

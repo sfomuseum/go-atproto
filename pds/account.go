@@ -10,7 +10,7 @@ import (
 	"github.com/sfomuseum/go-atproto/plc"
 )
 
-type User struct {
+type Account struct {
 	DID          string                `json:"did"`
 	Handle       string                `json:"handle"`
 	DIDDocument  *identity.DIDDocument `json:"did_document"`
@@ -18,7 +18,7 @@ type User struct {
 	LastModified int64                 `json:"lastmodified"`
 }
 
-func CreateUser(ctx context.Context, service string, handle string) (*User, error) {
+func CreateAccount(ctx context.Context, service string, handle string) (*Account, error) {
 
 	rsp, err := plc.NewDID(ctx, service, handle)
 
@@ -46,7 +46,7 @@ func CreateUser(ctx context.Context, service string, handle string) (*User, erro
 
 	// To do: Private key, wut??
 
-	u := &User{
+	u := &Account{
 		DID:         id,
 		DIDDocument: doc,
 		// Handle: handle,
@@ -55,34 +55,34 @@ func CreateUser(ctx context.Context, service string, handle string) (*User, erro
 	return u, nil
 }
 
-func GetUser(ctx context.Context, db UsersDatabase, did string) (*User, error) {
-	return db.GetUser(ctx, did)
+func GetAccount(ctx context.Context, db AccountsDatabase, did string) (*Account, error) {
+	return db.GetAccount(ctx, did)
 }
 
-func GetUserWithHandle(ctx context.Context, db UsersDatabase, handle string) (*User, error) {
-	return db.GetUserWithHandle(ctx, handle)
+func GetAccountWithHandle(ctx context.Context, db AccountsDatabase, handle string) (*Account, error) {
+	return db.GetAccountWithHandle(ctx, handle)
 }
 
-func AddUser(ctx context.Context, db UsersDatabase, user *User) error {
+func AddAccount(ctx context.Context, db AccountsDatabase, account *Account) error {
 
 	now := time.Now()
 	ts := now.Unix()
 
-	user.Created = ts
-	user.LastModified = ts
+	account.Created = ts
+	account.LastModified = ts
 
-	return db.AddUser(ctx, user)
+	return db.AddAccount(ctx, account)
 }
 
-func UpdateUser(ctx context.Context, db UsersDatabase, user *User) error {
+func UpdateAccount(ctx context.Context, db AccountsDatabase, account *Account) error {
 
 	now := time.Now()
 	ts := now.Unix()
 
-	user.LastModified = ts
-	return db.AddUser(ctx, user)
+	account.LastModified = ts
+	return db.AddAccount(ctx, account)
 }
 
-func DeleteUser(ctx context.Context, db UsersDatabase, user *User) error {
-	return db.DeleteUser(ctx, user)
+func DeleteAccount(ctx context.Context, db AccountsDatabase, account *Account) error {
+	return db.DeleteAccount(ctx, account)
 }
