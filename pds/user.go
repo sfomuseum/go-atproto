@@ -12,6 +12,7 @@ import (
 
 type User struct {
 	DID          string                `json:"did"`
+	Handle       string                `json:"handle"`
 	DIDDocument  *identity.DIDDocument `json:"did_document"`
 	Created      int64                 `json:"created"`
 	LastModified int64                 `json:"lastmodified"`
