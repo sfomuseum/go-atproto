@@ -1,3 +1,5 @@
+DROP TABLE IF exists keypairs;
+
 CREATE TABLE keypairs (
        did TEXT,
        label TEXT,       

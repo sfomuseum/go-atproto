@@ -6,19 +6,24 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/bluesky-social/indigo/atproto/identity"
+	_ "github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/sfomuseum/go-atproto/plc"
 )
 
 type Account struct {
-	DID          string                `json:"did"`
-	Handle       string                `json:"handle"`
-	DIDDocument  *identity.DIDDocument `json:"did_document"`
-	Created      int64                 `json:"created"`
-	LastModified int64                 `json:"lastmodified"`
+	DID          string `json:"did"`
+	Handle       string `json:"handle"`
+	Created      int64  `json:"created"`
+	LastModified int64  `json:"lastmodified"`
 }
 
-func CreateAccount(ctx context.Context, service string, handle string) (*Account, error) {
+type CreateAccountResponse struct {
+	Account   *Account
+	KeyPair   *KeyPair
+	Operation *Operation
+}
+
+func CreateAccount(ctx context.Context, service string, handle string) (*CreateAccountResponse, error) {
 
 	rsp, err := plc.NewDID(ctx, service, handle)
 
@@ -27,32 +32,47 @@ func CreateAccount(ctx context.Context, service string, handle string) (*Account
 	}
 
 	doc := rsp.DID
-	id := doc.DID.String()
+	did := doc.DID.String()
 
 	op := rsp.Operation
 	cid := op.CID().String()
 
-	slog.Info("OK", "did", id, "cid", cid, "pk", rsp.PrivateKey.Multibase())
+	slog.Info("OK", "did", did, "cid", cid, "pk", rsp.PrivateKey.Multibase())
 
 	// https://github.com/did-method-plc/go-didplc/blob/main/cmd/plcli/main.go#L286
 
 	cl := plc.DefaultClient()
 
-	err = cl.Submit(ctx, id, op)
+	err = cl.Submit(ctx, did, op)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to submit operation, %w", err)
 	}
 
-	// To do: Private key, wut??
-
-	u := &Account{
-		DID:         id,
-		DIDDocument: doc,
-		// Handle: handle,
+	acct := &Account{
+		DID:    did,
+		Handle: handle,
 	}
 
-	return u, nil
+	acct_kp := &KeyPair{
+		DID:                 did,
+		Label:               "atproto",
+		PrivateKeyMultibase: rsp.PrivateKey.Multibase(),
+	}
+
+	acct_op := &Operation{
+		DID:       did,
+		CID:       cid,
+		Operation: op,
+	}
+
+	acct_rsp := &CreateAccountResponse{
+		Account:   acct,
+		KeyPair:   acct_kp,
+		Operation: acct_op,
+	}
+
+	return acct_rsp, nil
 }
 
 func GetAccount(ctx context.Context, db AccountsDatabase, did string) (*Account, error) {

@@ -3,8 +3,7 @@ package create
 import (
 	"context"
 	"flag"
-	"fmt"
-	_ "log/slog"
+	"log/slog"
 
 	"github.com/sfomuseum/go-atproto/pds"
 )
@@ -35,18 +34,55 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	defer accounts_db.Close()
 
-	u, err := pds.CreateAccount(ctx, opts.Service, opts.Handle)
+	keypairs_db, err := pds.NewKeyPairsDatabase(ctx, opts.KeyPairsDatabaseURI)
 
 	if err != nil {
 		return err
 	}
 
-	err = pds.AddAccount(ctx, accounts_db, u)
+	defer keypairs_db.Close()
+
+	operations_db, err := pds.NewOperationsDatabase(ctx, opts.OperationsDatabaseURI)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("New account created with DID '%s'\n", u.DID)
+	defer operations_db.Close()
+
+	logger := slog.Default()
+
+	rsp, err := pds.CreateAccount(ctx, opts.Service, opts.Handle)
+
+	if err != nil {
+		return err
+	}
+
+	logger = logger.With("did", rsp.Account.DID)
+	logger = logger.With("cid", rsp.Operation.CID)
+	logger = logger.With("keypair", rsp.KeyPair.Label)
+
+	err = pds.AddAccount(ctx, accounts_db, rsp.Account)
+
+	if err != nil {
+		logger.Error("Failed to add account to database", "error", err)
+		return err
+	}
+
+	err = pds.AddKeyPair(ctx, keypairs_db, rsp.KeyPair)
+
+	if err != nil {
+		logger.Error("Failed to add keypair to database", "error", err)
+		return err
+	}
+
+	err = pds.AddOperation(ctx, operations_db, rsp.Operation)
+
+	if err != nil {
+		logger.Error("Failed to add operation to database", "error", err)
+		return err
+	}
+
+	logger.Info("New account created")
 	return nil
 }

@@ -1,3 +1,5 @@
+DROP TABLE IF exists accounts;
+
 CREATE TABLE accounts (
        did TEXT PRIMARY KEY,
        handle TEXT,

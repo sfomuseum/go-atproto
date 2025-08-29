@@ -1,3 +1,5 @@
+DROP TABLE IF exists operations;
+
 CREATE TABLE operations (
        cid TEXT PRIMARY KEY,
        did TEXT,
