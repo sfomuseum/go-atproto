@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	_ "github.com/mattn/go-sqlite3"
 	_ "gocloud.dev/blob/memblob"
 
 	"github.com/sfomuseum/go-atproto/app/pds/account/create"

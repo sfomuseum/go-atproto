@@ -8,6 +8,7 @@ require (
 	github.com/aaronland/gocloud v1.0.0
 	github.com/bluesky-social/indigo v0.0.0-20250813051257-8be102876fb7
 	github.com/did-method-plc/go-didplc v0.0.0-20250716171643-635da8b4e038
+	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/sfomuseum/go-flags v0.11.0
 	gocloud.dev v0.43.0
 )

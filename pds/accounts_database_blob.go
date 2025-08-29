@@ -118,10 +118,6 @@ func (db *BlobAccountsDatabase) UpdateAccount(ctx context.Context, account *Acco
 	return db.writeAccount(ctx, account)
 }
 
-func (db *BlobAccountsDatabase) DeleteAccount(ctx context.Context, account *Account) error {
-	return db.bucket.Delete(ctx, account.DID)
-}
-
 func (db *BlobAccountsDatabase) ListAccounts(ctx context.Context) iter.Seq2[*Account, error] {
 
 	return func(yield func(*Account, error) bool) {

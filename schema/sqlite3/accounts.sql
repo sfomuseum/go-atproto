@@ -4,6 +4,7 @@ CREATE TABLE accounts (
        did TEXT PRIMARY KEY,
        handle TEXT,
        created INTEGER,
+       deleted INTEGER,       
        lastmodified INTEGER
 );
 

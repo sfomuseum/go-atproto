@@ -14,6 +14,7 @@ type Account struct {
 	DID          string `json:"did"`
 	Handle       string `json:"handle"`
 	Created      int64  `json:"created"`
+	Deleted      int64  `json:"deleted"`
 	LastModified int64  `json:"lastmodified"`
 }
 
@@ -104,5 +105,10 @@ func UpdateAccount(ctx context.Context, db AccountsDatabase, account *Account) e
 }
 
 func DeleteAccount(ctx context.Context, db AccountsDatabase, account *Account) error {
-	return db.DeleteAccount(ctx, account)
+
+	now := time.Now()
+	ts := now.Unix()
+
+	account.Deleted = ts
+	return UpdateAccount(ctx, db, account)
 }

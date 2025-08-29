@@ -16,7 +16,6 @@ type AccountsDatabase interface {
 	GetAccountWithHandle(context.Context, string) (*Account, error)
 	AddAccount(context.Context, *Account) error
 	UpdateAccount(context.Context, *Account) error
-	DeleteAccount(context.Context, *Account) error
 	ListAccounts(context.Context) iter.Seq2[*Account, error]
 	Close() error
 }

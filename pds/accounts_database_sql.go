@@ -159,19 +159,6 @@ func (db *SQLAccountsDatabase) UpdateAccount(ctx context.Context, account *Accou
 
 }
 
-func (db *SQLAccountsDatabase) DeleteAccount(ctx context.Context, account *Account) error {
-
-	q := "DELETE FROM accounts where did = ?"
-
-	_, err := db.conn.ExecContext(ctx, q, account.DID)
-
-	if err != nil {
-		return fmt.Errorf("Failed to delete account, %w", err)
-	}
-
-	return nil
-}
-
 func (db *SQLAccountsDatabase) ListAccounts(ctx context.Context) iter.Seq2[*Account, error] {
 
 	return func(yield func(*Account, error) bool) {
