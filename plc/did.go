@@ -144,7 +144,7 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 }
 
 // TombstoneDID will issue a tombstone for 'did' and 'prev' (CID). Currently this uses the "default" PLC client which assumes as 'plc.directory'.
-func TombstoneDID(ctx context.Context, did string, prev string, private_key *crypto.PrivateKeyK256) (didplc.Operation, error) {
+func TombstoneDID(ctx context.Context, cl *didplc.Client, did string, prev string, private_key *crypto.PrivateKeyK256) (didplc.Operation, error) {
 
 	op := didplc.TombstoneOp{
 		Type: "plc_tombstone",
@@ -179,7 +179,6 @@ func TombstoneDID(ctx context.Context, did string, prev string, private_key *cry
 		return nil, fmt.Errorf("Failed to derive as operation")
 	}
 
-	cl := DefaultClient()
 	err = cl.Submit(ctx, did, as_op)
 
 	if err != nil {

@@ -34,7 +34,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	defer accounts_db.Close()
 
-	keypairs_db, err := pds.NewKeyPairsDatabase(ctx, opts.KeyPairsDatabaseURI)
+	keypairs_db, err := pds.NewKeysDatabase(ctx, opts.KeysDatabaseURI)
 
 	if err != nil {
 		return err
@@ -60,7 +60,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	logger = logger.With("did", rsp.Account.DID)
 	logger = logger.With("cid", rsp.Operation.CID)
-	logger = logger.With("keypair", rsp.KeyPair.Label)
+	logger = logger.With("key", rsp.Key.Label)
 
 	err = pds.AddAccount(ctx, accounts_db, rsp.Account)
 
@@ -69,7 +69,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		return err
 	}
 
-	err = pds.AddKeyPair(ctx, keypairs_db, rsp.KeyPair)
+	err = pds.AddKey(ctx, keypairs_db, rsp.Key)
 
 	if err != nil {
 		logger.Error("Failed to add keypair to database", "error", err)

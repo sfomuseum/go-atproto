@@ -20,7 +20,7 @@ type Account struct {
 
 type CreateAccountResponse struct {
 	Account   *Account
-	KeyPair   *KeyPair
+	Key       *Key
 	Operation *Operation
 }
 
@@ -59,7 +59,7 @@ func CreateAccount(ctx context.Context, service string, handle string) (*CreateA
 		Handle: handle,
 	}
 
-	acct_kp := &KeyPair{
+	acct_k := &Key{
 		DID:                 did,
 		Label:               "atproto",
 		PrivateKeyMultibase: rsp.PrivateKey.Multibase(),
@@ -73,15 +73,11 @@ func CreateAccount(ctx context.Context, service string, handle string) (*CreateA
 
 	acct_rsp := &CreateAccountResponse{
 		Account:   acct,
-		KeyPair:   acct_kp,
+		Key:       acct_k,
 		Operation: acct_op,
 	}
 
 	return acct_rsp, nil
-}
-
-func RemoveAccont(ctx context.Context) (*RemoveAccountResponse, error) {
-
 }
 
 func GetAccount(ctx context.Context, db AccountsDatabase, did string) (*Account, error) {

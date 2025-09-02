@@ -1,11 +1,13 @@
-package create
+package delete
 
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log/slog"
 
 	"github.com/sfomuseum/go-atproto/pds"
+	"github.com/sfomuseum/go-atproto/plc"
 )
 
 func Run(ctx context.Context) error {
@@ -34,13 +36,13 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	defer accounts_db.Close()
 
-	keypairs_db, err := pds.NewKeyPairsDatabase(ctx, opts.KeyPairsDatabaseURI)
+	keys_db, err := pds.NewKeysDatabase(ctx, opts.KeysDatabaseURI)
 
 	if err != nil {
 		return err
 	}
 
-	defer keypairs_db.Close()
+	defer keys_db.Close()
 
 	operations_db, err := pds.NewOperationsDatabase(ctx, opts.OperationsDatabaseURI)
 
@@ -53,45 +55,73 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 	logger := slog.Default()
 	logger = logger.With("did", opts.DID)
 
-	rsp, err := pds.DeleteAccount(ctx, opts.DID)
+	acct, err := accounts_db.GetAccount(ctx, opts.DID)
+
+	if err != nil {
+		return fmt.Errorf("Failed to retrieve account, %w", err)
+	}
+
+	k, err := keys_db.GetKey(ctx, acct.DID, "atproto")
+
+	if err != nil {
+		return fmt.Errorf("Failed to retrieve key, %w", err)
+	}
+
+	pr_key, err := k.PrivateKeyK256()
+
+	if err != nil {
+		return fmt.Errorf("Failed to derive private key from multibase, %w", err)
+	}
+
+	last_op, err := operations_db.GetLastOperationForDID(ctx, acct.DID)
+
+	if err != nil {
+		return fmt.Errorf("Failed to retrieve last operation for DID, %w", err)
+	}
+
+	plc_cl := plc.DefaultClient()
+
+	tombstone_op, err := plc.TombstoneDID(ctx, plc_cl, acct.DID, last_op.CID, pr_key)
+
+	if err != nil {
+		return fmt.Errorf("Failed to tombstone DID, %w", err)
+	}
+
+	op := &pds.Operation{
+		CID:       tombstone_op.CID().String(),
+		DID:       acct.DID,
+		Operation: tombstone_op,
+	}
+
+	err = pds.AddOperation(ctx, operations_db, op)
+
+	if err != nil {
+		return fmt.Errorf("Failed to add operation for tombstone_op, %w", err)
+	}
+
+	err = pds.DeleteAccount(ctx, accounts_db, acct)
 
 	if err != nil {
 		return err
 	}
 
-	logger = logger.With("cid", rsp.Operation.CID)
-
-	err = pds.RemoveAccount(ctx, accounts_db, rsp.Account)
-
-	if err != nil {
-		logger.Error("Failed to add account to database", "error", err)
-		return err
-	}
-
-	list_opts := &pds.ListKeyPairsOptions{
+	list_opts := &pds.ListKeysOptions{
 		DID: opts.DID,
 	}
 
-	for kp, err := range keypairs_db.ListKeyPairs(ctx, list_opts) {
+	for kp, err := range keys_db.ListKeys(ctx, list_opts) {
 
 		if err != nil {
-			logger.Error("List keypairs iterator returned an error", "error", err)
+			logger.Error("List keys iterator returned an error", "error", err)
 			return err
 		}
 
-		err = pds.DeleteKeyPair(ctx, keypairs_db, kp)
+		err = pds.DeleteKey(ctx, keys_db, kp)
 
 		if err != nil {
-			logger.Error("Failed to remove keypair to database", "label", kp.Label, "error", err)
+			logger.Error("Failed to remove key to database", "label", kp.Label, "error", err)
 			return err
 		}
-	}
-
-	err = pds.AddOperation(ctx, operations_db, rsp.Operation)
-
-	if err != nil {
-		logger.Error("Failed to add operation to database", "error", err)
-		return err
 	}
 
 	logger.Info("New account created")

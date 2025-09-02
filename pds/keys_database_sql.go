@@ -10,8 +10,8 @@ import (
 	"github.com/sfomuseum/go-atproto"
 )
 
-type SQLKeyPairsDatabase struct {
-	KeyPairsDatabase
+type SQLKeysDatabase struct {
+	KeysDatabase
 	conn   *sql.DB
 	engine string
 }
@@ -19,14 +19,14 @@ type SQLKeyPairsDatabase struct {
 func init() {
 
 	ctx := context.Background()
-	err := RegisterKeyPairsDatabase(ctx, "sql", NewSQLKeyPairsDatabase)
+	err := RegisterKeysDatabase(ctx, "sql", NewSQLKeysDatabase)
 
 	if err != nil {
 		panic(err)
 	}
 }
 
-func NewSQLKeyPairsDatabase(ctx context.Context, uri string) (KeyPairsDatabase, error) {
+func NewSQLKeysDatabase(ctx context.Context, uri string) (KeysDatabase, error) {
 
 	u, err := url.Parse(uri)
 
@@ -53,7 +53,7 @@ func NewSQLKeyPairsDatabase(ctx context.Context, uri string) (KeyPairsDatabase, 
 		return nil, fmt.Errorf("Unable to create database (%s) because %v", engine, err)
 	}
 
-	db := &SQLKeyPairsDatabase{
+	db := &SQLKeysDatabase{
 		conn:   conn,
 		engine: engine,
 	}
@@ -61,24 +61,23 @@ func NewSQLKeyPairsDatabase(ctx context.Context, uri string) (KeyPairsDatabase, 
 	return db, nil
 }
 
-func (db *SQLKeyPairsDatabase) GetKeyPair(ctx context.Context, did string, label string) (*KeyPair, error) {
+func (db *SQLKeysDatabase) GetKey(ctx context.Context, did string, label string) (*Key, error) {
 
-	q := "SELECT did, label, public, private, created, lastmodified FROM keypairs where did = ? AND label = ?"
-	return db.getKeyPair(ctx, q, did, label)
+	q := "SELECT did, label, private, created, lastmodified FROM keypairs where did = ? AND label = ?"
+	return db.getKey(ctx, q, did, label)
 }
 
-func (db *SQLKeyPairsDatabase) getKeyPair(ctx context.Context, q string, args ...interface{}) (*KeyPair, error) {
+func (db *SQLKeysDatabase) getKey(ctx context.Context, q string, args ...interface{}) (*Key, error) {
 
 	row := db.conn.QueryRowContext(ctx, q, args...)
 
 	var did string
 	var label string
-	var public string
 	var private string
 	var created int64
 	var lastmod int64
 
-	err := row.Scan(&did, &label, &public, &private, &created, &lastmod)
+	err := row.Scan(&did, &label, &private, &created, &lastmod)
 
 	if err != nil {
 
@@ -89,10 +88,9 @@ func (db *SQLKeyPairsDatabase) getKeyPair(ctx context.Context, q string, args ..
 		return nil, err
 	}
 
-	kp := &KeyPair{
+	kp := &Key{
 		DID:                 did,
 		Label:               label,
-		PublicKeyMultibase:  public,
 		PrivateKeyMultibase: private,
 		Created:             created,
 		LastModified:        lastmod,
@@ -101,11 +99,11 @@ func (db *SQLKeyPairsDatabase) getKeyPair(ctx context.Context, q string, args ..
 	return kp, err
 }
 
-func (db *SQLKeyPairsDatabase) AddKeyPair(ctx context.Context, kp *KeyPair) error {
+func (db *SQLKeysDatabase) AddKey(ctx context.Context, kp *Key) error {
 
-	q := "INSERT INTO keypairs (did, label, public, private, created, lastmodified) VALUES (?, ?, ?, ?, ?, ?)"
+	q := "INSERT INTO keypairs (did, label, private, created, lastmodified) VALUES (?, ?, ?, ?, ?, ?)"
 
-	_, err := db.conn.ExecContext(ctx, q, kp.DID, kp.Label, kp.PublicKeyMultibase, kp.PrivateKeyMultibase, kp.Created, kp.LastModified)
+	_, err := db.conn.ExecContext(ctx, q, kp.DID, kp.Label, kp.PrivateKeyMultibase, kp.Created, kp.LastModified)
 
 	if err != nil {
 		return fmt.Errorf("Failed to add keypair, %w", err)
@@ -114,7 +112,7 @@ func (db *SQLKeyPairsDatabase) AddKeyPair(ctx context.Context, kp *KeyPair) erro
 	return nil
 }
 
-func (db *SQLKeyPairsDatabase) DeleteKeyPair(ctx context.Context, kp *KeyPair) error {
+func (db *SQLKeysDatabase) DeleteKey(ctx context.Context, kp *Key) error {
 
 	q := "DELETE FROM keypairs where did = ? AND label = ?"
 
@@ -127,11 +125,11 @@ func (db *SQLKeyPairsDatabase) DeleteKeyPair(ctx context.Context, kp *KeyPair) e
 	return nil
 }
 
-func (db *SQLKeyPairsDatabase) ListKeyPairs(ctx context.Context, opts *ListKeyPairsOptions) iter.Seq2[*KeyPair, error] {
+func (db *SQLKeysDatabase) ListKeys(ctx context.Context, opts *ListKeysOptions) iter.Seq2[*Key, error] {
 
-	return func(yield func(*KeyPair, error) bool) {
+	return func(yield func(*Key, error) bool) {
 
-		q := "SELECT did, label, public, private, created, lastmodified FROM keypairs ORDER BY created DESC"
+		q := "SELECT did, label, private, created, lastmodified FROM keypairs ORDER BY created DESC"
 
 		rows, err := db.conn.QueryContext(ctx, q)
 
@@ -146,12 +144,11 @@ func (db *SQLKeyPairsDatabase) ListKeyPairs(ctx context.Context, opts *ListKeyPa
 
 			var did string
 			var label string
-			var public string
 			var private string
 			var created int64
 			var lastmod int64
 
-			err := rows.Scan(&did, &label, &public, &private, &created, &lastmod)
+			err := rows.Scan(&did, &label, &private, &created, &lastmod)
 
 			if err != nil {
 
@@ -162,10 +159,9 @@ func (db *SQLKeyPairsDatabase) ListKeyPairs(ctx context.Context, opts *ListKeyPa
 				continue
 			}
 
-			kp := &KeyPair{
+			kp := &Key{
 				DID:                 did,
 				Label:               label,
-				PublicKeyMultibase:  public,
 				PrivateKeyMultibase: private,
 				Created:             created,
 				LastModified:        lastmod,
@@ -191,6 +187,6 @@ func (db *SQLKeyPairsDatabase) ListKeyPairs(ctx context.Context, opts *ListKeyPa
 	}
 }
 
-func (db *SQLKeyPairsDatabase) Close() error {
+func (db *SQLKeysDatabase) Close() error {
 	return db.conn.Close()
 }

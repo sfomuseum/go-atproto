@@ -9,7 +9,7 @@ import (
 
 type RunOptions struct {
 	AccountsDatabaseURI   string `json:"accounts_database_uri"`
-	KeyPairsDatabaseURI   string `json:"keypairs_database_uri"`
+	KeysDatabaseURI       string `json:"keys_database_uri"`
 	OperationsDatabaseURI string `json:"operations_database_uri"`
 	Handle                string `json:"handle"`
 	Service               string `json:"service"`
@@ -25,8 +25,8 @@ func OptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, err
 			accounts_database_uri = database_uri
 		}
 
-		if keypairs_database_uri == "" {
-			keypairs_database_uri = database_uri
+		if keys_database_uri == "" {
+			keys_database_uri = database_uri
 		}
 
 		if operations_database_uri == "" {
@@ -36,7 +36,7 @@ func OptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, err
 
 	opts := &RunOptions{
 		AccountsDatabaseURI:   accounts_database_uri,
-		KeyPairsDatabaseURI:   keypairs_database_uri,
+		KeysDatabaseURI:       keys_database_uri,
 		OperationsDatabaseURI: operations_database_uri,
 		Handle:                handle,
 		Service:               service,
