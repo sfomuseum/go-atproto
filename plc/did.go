@@ -24,7 +24,7 @@ type NewDIDResult struct {
 // NewDID generates a new `identity.DIDDocument` for 'handle' at 'service' and returns a signed `didplc.Operation`
 // which can be submitted to a PLC directory service as a separate task. The identity document, signed operations
 // as well as the private signing key associated with the DID are returned in a `NewDIDResult` struct.
-func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, error) {
+func NewDID(ctx context.Context, plc_cl *didplc.Client, service string, handle string) (*NewDIDResult, error) {
 
 	// This basically follows the same logic/code defined in bluesky-social/goat
 	// https://github.com/bluesky-social/goat/blob/main/plc.go#L416
@@ -132,6 +132,12 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 
 	if as_op == nil {
 		return nil, fmt.Errorf("Failed to derive as operation")
+	}
+
+	err = plc_cl.Submit(ctx, did_id, as_op)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to submit create operation, %w", err)
 	}
 
 	rsp := &NewDIDResult{

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/sfomuseum/go-atproto/pds"
+	"github.com/sfomuseum/go-atproto/plc"
 )
 
 func Run(ctx context.Context) error {
@@ -31,6 +32,10 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		slog.Debug("Verbose logging enabled")
 	}
 
+	logger := slog.Default()
+	logger = logger.With("handle", opts.Handle)
+	logger = logger.With("service", opts.Service)
+
 	accounts_db, err := pds.NewAccountsDatabase(ctx, opts.AccountsDatabaseURI)
 
 	if err != nil {
@@ -55,11 +60,12 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	defer operations_db.Close()
 
-	logger := slog.Default()
+	plc_cl := plc.DefaultClient()
 
-	rsp, err := pds.CreateAccount(ctx, opts.Service, opts.Handle)
+	rsp, err := pds.CreateAccount(ctx, plc_cl, opts.Service, opts.Handle)
 
 	if err != nil {
+		logger.Error("Failed to create account", "error", err)
 		return err
 	}
 

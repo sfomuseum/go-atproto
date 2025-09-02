@@ -3,10 +3,10 @@ package pds
 import (
 	"context"
 	"fmt"
-	"log/slog"
+	_ "log/slog"
 	"time"
 
-	_ "github.com/bluesky-social/indigo/atproto/identity"
+	"github.com/did-method-plc/go-didplc"
 	"github.com/sfomuseum/go-atproto/plc"
 )
 
@@ -28,9 +28,9 @@ type RemoveAccountResponse struct {
 	Operation *Operation
 }
 
-func CreateAccount(ctx context.Context, service string, handle string) (*CreateAccountResponse, error) {
+func CreateAccount(ctx context.Context, plc_cl *didplc.Client, service string, handle string) (*CreateAccountResponse, error) {
 
-	rsp, err := plc.NewDID(ctx, service, handle)
+	rsp, err := plc.NewDID(ctx, plc_cl, service, handle)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create new DID, %w", err)
@@ -41,18 +41,6 @@ func CreateAccount(ctx context.Context, service string, handle string) (*CreateA
 
 	op := rsp.Operation
 	cid := op.CID().String()
-
-	slog.Info("OK", "did", did, "cid", cid, "pk", rsp.PrivateKey.Multibase())
-
-	// https://github.com/did-method-plc/go-didplc/blob/main/cmd/plcli/main.go#L286
-
-	cl := plc.DefaultClient()
-
-	err = cl.Submit(ctx, did, op)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to submit operation, %w", err)
-	}
 
 	acct := &Account{
 		DID:    did,
