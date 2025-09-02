@@ -101,7 +101,7 @@ func (db *SQLKeysDatabase) getKey(ctx context.Context, q string, args ...interfa
 
 func (db *SQLKeysDatabase) AddKey(ctx context.Context, kp *Key) error {
 
-	q := "INSERT INTO keys (did, label, private, created, lastmodified) VALUES (?, ?, ?, ?, ?, ?)"
+	q := "INSERT INTO keys (did, label, private, created, lastmodified) VALUES (?, ?, ?, ?, ?)"
 
 	_, err := db.conn.ExecContext(ctx, q, kp.DID, kp.Label, kp.PrivateKeyMultibase, kp.Created, kp.LastModified)
 
