@@ -63,7 +63,7 @@ func NewSQLKeysDatabase(ctx context.Context, uri string) (KeysDatabase, error) {
 
 func (db *SQLKeysDatabase) GetKey(ctx context.Context, did string, label string) (*Key, error) {
 
-	q := "SELECT did, label, private, created, lastmodified FROM keypairs where did = ? AND label = ?"
+	q := "SELECT did, label, private, created, lastmodified FROM keys where did = ? AND label = ?"
 	return db.getKey(ctx, q, did, label)
 }
 
@@ -101,12 +101,12 @@ func (db *SQLKeysDatabase) getKey(ctx context.Context, q string, args ...interfa
 
 func (db *SQLKeysDatabase) AddKey(ctx context.Context, kp *Key) error {
 
-	q := "INSERT INTO keypairs (did, label, private, created, lastmodified) VALUES (?, ?, ?, ?, ?, ?)"
+	q := "INSERT INTO keys (did, label, private, created, lastmodified) VALUES (?, ?, ?, ?, ?, ?)"
 
 	_, err := db.conn.ExecContext(ctx, q, kp.DID, kp.Label, kp.PrivateKeyMultibase, kp.Created, kp.LastModified)
 
 	if err != nil {
-		return fmt.Errorf("Failed to add keypair, %w", err)
+		return fmt.Errorf("Failed to add key, %w", err)
 	}
 
 	return nil
@@ -114,12 +114,12 @@ func (db *SQLKeysDatabase) AddKey(ctx context.Context, kp *Key) error {
 
 func (db *SQLKeysDatabase) DeleteKey(ctx context.Context, kp *Key) error {
 
-	q := "DELETE FROM keypairs where did = ? AND label = ?"
+	q := "DELETE FROM keys where did = ? AND label = ?"
 
 	_, err := db.conn.ExecContext(ctx, q, kp.DID, kp.Label)
 
 	if err != nil {
-		return fmt.Errorf("Failed to delete keypair, %w", err)
+		return fmt.Errorf("Failed to delete key, %w", err)
 	}
 
 	return nil
@@ -129,7 +129,7 @@ func (db *SQLKeysDatabase) ListKeys(ctx context.Context, opts *ListKeysOptions) 
 
 	return func(yield func(*Key, error) bool) {
 
-		q := "SELECT did, label, private, created, lastmodified FROM keypairs ORDER BY created DESC"
+		q := "SELECT did, label, private, created, lastmodified FROM keys ORDER BY created DESC"
 
 		rows, err := db.conn.QueryContext(ctx, q)
 

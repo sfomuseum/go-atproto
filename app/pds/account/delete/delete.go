@@ -95,6 +95,8 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	logger = logger.With("last operation", last_op.CID)
 
+	logger.Info("Tombstone DID")
+
 	plc_cl := plc.DefaultClient()
 
 	tombstone_op, err := plc.TombstoneDID(ctx, plc_cl, acct.DID, last_op.CID, pr_key)

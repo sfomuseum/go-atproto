@@ -65,13 +65,13 @@ func NewSQLOperationsDatabase(ctx context.Context, uri string) (OperationsDataba
 
 func (db *SQLOperationsDatabase) GetOperation(ctx context.Context, cid string) (*Operation, error) {
 
-	q := "SELECT cid, did, str_op, created, lastmodified FROM operations where cid = ?"
+	q := "SELECT cid, did, operation, created, lastmodified FROM operations where cid = ?"
 	return db.getOperation(ctx, q, cid)
 }
 
 func (db *SQLOperationsDatabase) GetLastOperationForDID(ctx context.Context, did string) (*Operation, error) {
 
-	q := "SELECT cid, did, str_op, created, lastmodified FROM operations where did = ? ORDER BY created DESC LIMIT 1"
+	q := "SELECT cid, did, operation, created, lastmodified FROM operations where did = ? ORDER BY created DESC LIMIT 1"
 	return db.getOperation(ctx, q, did)
 }
 
@@ -85,7 +85,7 @@ func (db *SQLOperationsDatabase) getOperation(ctx context.Context, q string, arg
 	var created int64
 	var lastmod int64
 
-	err := row.Scan(&cid, &did, str_op, &created, &lastmod)
+	err := row.Scan(&cid, &did, &str_op, &created, &lastmod)
 
 	if err != nil {
 
@@ -149,7 +149,7 @@ func (db *SQLOperationsDatabase) ListOperations(ctx context.Context, opts *ListO
 
 	return func(yield func(*Operation, error) bool) {
 
-		q := "SELECT cid, did, str_op, created, lastmodified FROM operations ORDER BY created DESC"
+		q := "SELECT cid, did, operation, created, lastmodified FROM operations ORDER BY created DESC"
 
 		rows, err := db.conn.QueryContext(ctx, q)
 
@@ -168,7 +168,7 @@ func (db *SQLOperationsDatabase) ListOperations(ctx context.Context, opts *ListO
 			var created int64
 			var lastmod int64
 
-			err := rows.Scan(&cid, &did, str_op, &created, &lastmod)
+			err := rows.Scan(&cid, &did, &str_op, &created, &lastmod)
 
 			if err != nil {
 

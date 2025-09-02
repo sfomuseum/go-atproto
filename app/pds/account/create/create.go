@@ -3,8 +3,10 @@ package create
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log/slog"
 
+	"github.com/sfomuseum/go-atproto"
 	"github.com/sfomuseum/go-atproto/pds"
 	"github.com/sfomuseum/go-atproto/plc"
 )
@@ -44,13 +46,13 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	defer accounts_db.Close()
 
-	keypairs_db, err := pds.NewKeysDatabase(ctx, opts.KeysDatabaseURI)
+	keys_db, err := pds.NewKeysDatabase(ctx, opts.KeysDatabaseURI)
 
 	if err != nil {
 		return err
 	}
 
-	defer keypairs_db.Close()
+	defer keys_db.Close()
 
 	operations_db, err := pds.NewOperationsDatabase(ctx, opts.OperationsDatabaseURI)
 
@@ -59,6 +61,18 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 	}
 
 	defer operations_db.Close()
+
+	acct, err := pds.GetAccountWithHandle(ctx, accounts_db, opts.Handle)
+
+	if acct != nil {
+		logger.Error("Handle already exists", "with did", acct.DID)
+		return fmt.Errorf("Handle already taken")
+	}
+
+	if err != nil && err != atproto.ErrNotFound {
+		logger.Error("Failed to determine if handle exists", "error", err)
+		return err
+	}
 
 	plc_cl := plc.DefaultClient()
 
@@ -80,10 +94,10 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		return err
 	}
 
-	err = pds.AddKey(ctx, keypairs_db, rsp.Key)
+	err = pds.AddKey(ctx, keys_db, rsp.Key)
 
 	if err != nil {
-		logger.Error("Failed to add keypair to database", "error", err)
+		logger.Error("Failed to add key to database", "error", err)
 		return err
 	}
 

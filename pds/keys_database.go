@@ -23,10 +23,10 @@ type KeysDatabase interface {
 	Close() error
 }
 
-var keypairs_database_roster roster.Roster
+var keys_database_roster roster.Roster
 
-// KeysDatabaseInitializationFunc is a function defined by individual keypairs_database package and used to create
-// an instance of that keypairs_database
+// KeysDatabaseInitializationFunc is a function defined by individual keys_database package and used to create
+// an instance of that keys_database
 type KeysDatabaseInitializationFunc func(ctx context.Context, uri string) (KeysDatabase, error)
 
 // RegisterKeysDatabase registers 'scheme' as a key pointing to 'init_func' in an internal lookup table
@@ -39,12 +39,12 @@ func RegisterKeysDatabase(ctx context.Context, scheme string, init_func KeysData
 		return err
 	}
 
-	return keypairs_database_roster.Register(ctx, scheme, init_func)
+	return keys_database_roster.Register(ctx, scheme, init_func)
 }
 
 func ensureKeysDatabaseRoster() error {
 
-	if keypairs_database_roster == nil {
+	if keys_database_roster == nil {
 
 		r, err := roster.NewDefaultRoster()
 
@@ -52,7 +52,7 @@ func ensureKeysDatabaseRoster() error {
 			return err
 		}
 
-		keypairs_database_roster = r
+		keys_database_roster = r
 	}
 
 	return nil
@@ -72,7 +72,7 @@ func NewKeysDatabase(ctx context.Context, uri string) (KeysDatabase, error) {
 
 	scheme := u.Scheme
 
-	i, err := keypairs_database_roster.Driver(ctx, scheme)
+	i, err := keys_database_roster.Driver(ctx, scheme)
 
 	if err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func KeysDatabaseSchemes() []string {
 		return schemes
 	}
 
-	for _, dr := range keypairs_database_roster.Drivers(ctx) {
+	for _, dr := range keys_database_roster.Drivers(ctx) {
 		scheme := fmt.Sprintf("%s://", strings.ToLower(dr))
 		schemes = append(schemes, scheme)
 	}

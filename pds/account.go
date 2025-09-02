@@ -93,7 +93,7 @@ func UpdateAccount(ctx context.Context, db AccountsDatabase, account *Account) e
 	ts := now.Unix()
 
 	account.LastModified = ts
-	return db.AddAccount(ctx, account)
+	return db.UpdateAccount(ctx, account)
 }
 
 func DeleteAccount(ctx context.Context, db AccountsDatabase, account *Account) error {
