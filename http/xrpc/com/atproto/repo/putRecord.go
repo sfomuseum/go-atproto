@@ -11,8 +11,8 @@ const PutRecordHandlerURI string = "/xrpc/com.atproto.repo.putRecord"
 const PutRecordHandlerMethod string = http.MethodPut
 
 type PutRecordHandlerOptions struct {
-	UsersDatabase   pds.UsersDatabase
-	RecordsDatabase pds.RecordsDatabase
+	AccountsDatabase pds.AccountsDatabase
+	RecordsDatabase  pds.RecordsDatabase
 }
 
 func PutRecordHandler() (http.Handler, error) {

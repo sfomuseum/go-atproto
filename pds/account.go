@@ -1,0 +1,106 @@
+package pds
+
+import (
+	"context"
+	"fmt"
+	_ "log/slog"
+	"time"
+
+	"github.com/did-method-plc/go-didplc"
+	"github.com/sfomuseum/go-atproto/plc"
+)
+
+type Account struct {
+	DID          string `json:"did"`
+	Handle       string `json:"handle"`
+	Created      int64  `json:"created"`
+	Deleted      int64  `json:"deleted"`
+	LastModified int64  `json:"lastmodified"`
+}
+
+type CreateAccountResponse struct {
+	Account   *Account
+	Key       *Key
+	Operation *Operation
+}
+
+type RemoveAccountResponse struct {
+	Operation *Operation
+}
+
+func CreateAccount(ctx context.Context, plc_cl *didplc.Client, service string, handle string) (*CreateAccountResponse, error) {
+
+	rsp, err := plc.NewDID(ctx, plc_cl, service, handle)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create new DID, %w", err)
+	}
+
+	doc := rsp.DID
+	did := doc.DID.String()
+
+	op := rsp.Operation
+	cid := op.CID().String()
+
+	acct := &Account{
+		DID:    did,
+		Handle: handle,
+	}
+
+	acct_k := &Key{
+		DID:                 did,
+		Label:               "atproto",
+		PrivateKeyMultibase: rsp.PrivateKey.Multibase(),
+	}
+
+	acct_op := &Operation{
+		DID:       did,
+		CID:       cid,
+		Operation: op,
+	}
+
+	acct_rsp := &CreateAccountResponse{
+		Account:   acct,
+		Key:       acct_k,
+		Operation: acct_op,
+	}
+
+	return acct_rsp, nil
+}
+
+func GetAccount(ctx context.Context, db AccountsDatabase, did string) (*Account, error) {
+	return db.GetAccount(ctx, did)
+}
+
+func GetAccountWithHandle(ctx context.Context, db AccountsDatabase, handle string) (*Account, error) {
+	return db.GetAccountWithHandle(ctx, handle)
+}
+
+func AddAccount(ctx context.Context, db AccountsDatabase, account *Account) error {
+
+	now := time.Now()
+	ts := now.Unix()
+
+	account.Created = ts
+	account.LastModified = ts
+
+	return db.AddAccount(ctx, account)
+}
+
+func UpdateAccount(ctx context.Context, db AccountsDatabase, account *Account) error {
+
+	now := time.Now()
+	ts := now.Unix()
+
+	account.LastModified = ts
+	return db.UpdateAccount(ctx, account)
+}
+
+func DeleteAccount(ctx context.Context, db AccountsDatabase, account *Account) error {
+
+	now := time.Now()
+	ts := now.Unix()
+
+	account.Deleted = ts
+	return UpdateAccount(ctx, db, account)
+}

@@ -22,7 +22,9 @@ func main() {
 
 	ctx := context.Background()
 
-	rsp, err := plc.NewDID(ctx, service, handle)
+	plc_cl := plc.DefaultClient()
+
+	rsp, err := plc.NewDID(ctx, plc_cl, service, handle)
 
 	if err != nil {
 		log.Fatalf("Failed to create DID, %v", err)

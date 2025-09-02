@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bluesky-social/indigo/atproto/crypto"
+	"github.com/sfomuseum/go-atproto/crypto"
 	"github.com/sfomuseum/go-atproto/plc"
 )
 
@@ -25,23 +25,15 @@ func main() {
 
 	ctx := context.Background()
 
-	// START OF put me in a function
-
-	private_key, err := crypto.ParsePrivateMultibase(mb_private)
-
-	if err != nil {
-		log.Fatalf("Failed to derive private key, %v", err)
-	}
-
-	private_key_k256, err := crypto.ParsePrivateBytesK256(private_key.Bytes())
+	private_key_k256, err := crypto.PrivateKeyK256FromMultibase(mb_private)
 
 	if err != nil {
 		log.Fatalf("Failed to create private key k256, %v", err)
 	}
 
-	// END OF put me in a function
+	plc_cl := plc.DefaultClient()
 
-	op, err := plc.TombstoneDID(ctx, did, cid, private_key_k256)
+	op, err := plc.TombstoneDID(ctx, plc_cl, did, cid, private_key_k256)
 
 	if err != nil {
 		log.Fatalf("Failed to create DID, %v", err)

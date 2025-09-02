@@ -24,7 +24,7 @@ type NewDIDResult struct {
 // NewDID generates a new `identity.DIDDocument` for 'handle' at 'service' and returns a signed `didplc.Operation`
 // which can be submitted to a PLC directory service as a separate task. The identity document, signed operations
 // as well as the private signing key associated with the DID are returned in a `NewDIDResult` struct.
-func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, error) {
+func NewDID(ctx context.Context, plc_cl *didplc.Client, service string, handle string) (*NewDIDResult, error) {
 
 	// This basically follows the same logic/code defined in bluesky-social/goat
 	// https://github.com/bluesky-social/goat/blob/main/plc.go#L416
@@ -134,6 +134,12 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 		return nil, fmt.Errorf("Failed to derive as operation")
 	}
 
+	err = plc_cl.Submit(ctx, did_id, as_op)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to submit create operation, %w", err)
+	}
+
 	rsp := &NewDIDResult{
 		DID:        doc,
 		Operation:  as_op,
@@ -144,7 +150,7 @@ func NewDID(ctx context.Context, service string, handle string) (*NewDIDResult, 
 }
 
 // TombstoneDID will issue a tombstone for 'did' and 'prev' (CID). Currently this uses the "default" PLC client which assumes as 'plc.directory'.
-func TombstoneDID(ctx context.Context, did string, prev string, private_key *crypto.PrivateKeyK256) (didplc.Operation, error) {
+func TombstoneDID(ctx context.Context, cl *didplc.Client, did string, prev string, private_key *crypto.PrivateKeyK256) (didplc.Operation, error) {
 
 	op := didplc.TombstoneOp{
 		Type: "plc_tombstone",
@@ -179,7 +185,6 @@ func TombstoneDID(ctx context.Context, did string, prev string, private_key *cry
 		return nil, fmt.Errorf("Failed to derive as operation")
 	}
 
-	cl := DefaultClient()
 	err = cl.Submit(ctx, did, as_op)
 
 	if err != nil {
