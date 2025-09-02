@@ -55,6 +55,11 @@ func NewSQLAccountsDatabase(ctx context.Context, uri string) (AccountsDatabase, 
 		return nil, fmt.Errorf("Unable to create database (%s) because %v", engine, err)
 	}
 
+	switch engine {
+	case "sqlite3":
+		conn.SetMaxOpenConns(1)
+	}
+
 	db := &SQLAccountsDatabase{
 		conn: conn,
 	}
@@ -64,13 +69,13 @@ func NewSQLAccountsDatabase(ctx context.Context, uri string) (AccountsDatabase, 
 
 func (db *SQLAccountsDatabase) GetAccount(ctx context.Context, did string) (*Account, error) {
 
-	q := "SELECT did, handle, created, lastmodified FROM accounts where did = ?"
+	q := "SELECT did, handle, created, deleted, lastmodified FROM accounts where did = ?"
 	return db.getAccount(ctx, q, did)
 }
 
 func (db *SQLAccountsDatabase) GetAccountWithHandle(ctx context.Context, handle string) (*Account, error) {
 
-	q := "SELECT did, handle, created, lastmodified FROM accounts where handle = ?"
+	q := "SELECT did, handle, created, deleted, lastmodified FROM accounts where handle = ?"
 	return db.getAccount(ctx, q, handle)
 }
 
@@ -81,9 +86,10 @@ func (db *SQLAccountsDatabase) getAccount(ctx context.Context, q string, args ..
 	var did string
 	var handle string
 	var created int64
+	var deleted int64
 	var lastmod int64
 
-	err := row.Scan(&did, &handle, &created, &lastmod)
+	err := row.Scan(&did, &handle, &created, &deleted, &lastmod)
 
 	if err != nil {
 
@@ -110,6 +116,7 @@ func (db *SQLAccountsDatabase) getAccount(ctx context.Context, q string, args ..
 		DID:          did,
 		Handle:       handle,
 		Created:      created,
+		Deleted:      deleted,
 		LastModified: lastmod,
 	}
 
@@ -126,9 +133,9 @@ func (db *SQLAccountsDatabase) AddAccount(ctx context.Context, account *Account)
 		}
 	*/
 
-	q := "INSERT INTO accounts (did, handle, created, lastmodified) VALUES (?, ?, ?, ?)"
+	q := "INSERT INTO accounts (did, handle, created, deleted, lastmodified) VALUES (?, ?, ?, ?, ?)"
 
-	_, err := db.conn.ExecContext(ctx, q, account.DID, account.Handle, account.Created, account.LastModified)
+	_, err := db.conn.ExecContext(ctx, q, account.DID, account.Handle, account.Created, account.Deleted, account.LastModified)
 
 	if err != nil {
 		return fmt.Errorf("Failed to add account, %w", err)
@@ -147,9 +154,9 @@ func (db *SQLAccountsDatabase) UpdateAccount(ctx context.Context, account *Accou
 		}
 	*/
 
-	q := "UPDATE accounts SET handle = ?, lastmodified = ? WHERE did = ?"
+	q := "UPDATE accounts SET handle = ?, deleted = ?, lastmodified = ? WHERE did = ?"
 
-	_, err := db.conn.ExecContext(ctx, q, account.Handle, account.LastModified, account.DID)
+	_, err := db.conn.ExecContext(ctx, q, account.Handle, account.Deleted, account.LastModified, account.DID)
 
 	if err != nil {
 		return fmt.Errorf("Failed to update account, %w", err)
@@ -163,7 +170,7 @@ func (db *SQLAccountsDatabase) ListAccounts(ctx context.Context) iter.Seq2[*Acco
 
 	return func(yield func(*Account, error) bool) {
 
-		q := "SELECT did, handle, created, lastmodified FROM accounts ORDER BY created DESC"
+		q := "SELECT did, handle, created, deleted, lastmodified FROM accounts ORDER BY created DESC"
 
 		rows, err := db.conn.QueryContext(ctx, q)
 
@@ -179,9 +186,10 @@ func (db *SQLAccountsDatabase) ListAccounts(ctx context.Context) iter.Seq2[*Acco
 			var did string
 			var handle string
 			var created int64
+			var deleted int64
 			var lastmod int64
 
-			err := rows.Scan(&did, &handle, &created, &lastmod)
+			err := rows.Scan(&did, &handle, &created, &deleted, &lastmod)
 
 			if err != nil {
 
@@ -213,10 +221,13 @@ func (db *SQLAccountsDatabase) ListAccounts(ctx context.Context) iter.Seq2[*Acco
 				DID:          did,
 				Handle:       handle,
 				Created:      created,
+				Deleted:      deleted,
 				LastModified: lastmod,
 			}
 
-			yield(u, nil)
+			if !yield(u, nil) {
+				return
+			}
 		}
 
 		err = rows.Close()

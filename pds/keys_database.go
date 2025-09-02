@@ -18,6 +18,7 @@ type ListKeysOptions struct {
 type KeysDatabase interface {
 	GetKey(context.Context, string, string) (*Key, error)
 	AddKey(context.Context, *Key) error
+	DeleteKeysForDID(context.Context, string) error
 	DeleteKey(context.Context, *Key) error
 	ListKeys(context.Context, *ListKeysOptions) iter.Seq2[*Key, error]
 	Close() error

@@ -55,6 +55,11 @@ func NewSQLOperationsDatabase(ctx context.Context, uri string) (OperationsDataba
 		return nil, fmt.Errorf("Unable to create database (%s) because %v", engine, err)
 	}
 
+	switch engine {
+	case "sqlite3":
+		conn.SetMaxOpenConns(1)
+	}
+
 	db := &SQLOperationsDatabase{
 		conn:   conn,
 		engine: engine,
@@ -197,7 +202,9 @@ func (db *SQLOperationsDatabase) ListOperations(ctx context.Context, opts *ListO
 				LastModified: lastmod,
 			}
 
-			yield(op, nil)
+			if !yield(op, nil) {
+				return
+			}
 		}
 
 		err = rows.Close()

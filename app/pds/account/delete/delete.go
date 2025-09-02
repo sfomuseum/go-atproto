@@ -95,7 +95,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	logger = logger.With("last operation", last_op.CID)
 
-	logger.Info("Tombstone DID")
+	logger.Debug("Tombstone DID")
 
 	plc_cl := plc.DefaultClient()
 
@@ -117,12 +117,16 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		Operation: tombstone_op,
 	}
 
+	logger.Debug("Record tombstone operation")
+
 	err = pds.AddOperation(ctx, operations_db, op)
 
 	if err != nil {
 		logger.Error("Failed to record tombstone operation", "error", err)
 		return fmt.Errorf("Failed to add operation for tombstone_op, %w", err)
 	}
+
+	logger.Debug("Delete account")
 
 	err = pds.DeleteAccount(ctx, accounts_db, acct)
 
@@ -131,23 +135,13 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		return err
 	}
 
-	list_opts := &pds.ListKeysOptions{
-		DID: opts.DID,
-	}
+	logger.Debug("Delete account keys")
 
-	for k, err := range keys_db.ListKeys(ctx, list_opts) {
+	err = pds.DeleteKeysForDID(ctx, keys_db, acct.DID)
 
-		if err != nil {
-			logger.Error("List keys iterator returned an error", "error", err)
-			return err
-		}
-
-		err = pds.DeleteKey(ctx, keys_db, k)
-
-		if err != nil {
-			logger.Error("Failed to remove key database record", "label", k.Label, "error", err)
-			return err
-		}
+	if err != nil {
+		logger.Error("Failed to remove keys", "error", err)
+		return err
 	}
 
 	logger.Info("Account successfully deleted.")

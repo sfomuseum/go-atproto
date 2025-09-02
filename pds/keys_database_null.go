@@ -39,6 +39,10 @@ func (db *NullKeysDatabase) DeleteKey(ctx context.Context, kp *Key) error {
 	return nil
 }
 
+func (db *NullKeysDatabase) DeleteKeysForDID(ctx context.Context, did string) error {
+	return nil
+}
+
 func (db *NullKeysDatabase) ListKeys(ctx context.Context, opts *ListKeysOptions) iter.Seq2[*Key, error] {
 	return func(yield func(*Key, error) bool) {}
 }

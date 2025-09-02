@@ -31,6 +31,10 @@ func AddKey(ctx context.Context, db KeysDatabase, kp *Key) error {
 	return db.AddKey(ctx, kp)
 }
 
-func DeleteKey(ctx context.Context, db KeysDatabase, kp *Key) error {
-	return db.DeleteKey(ctx, kp)
+func DeleteKey(ctx context.Context, db KeysDatabase, k *Key) error {
+	return db.DeleteKey(ctx, k)
+}
+
+func DeleteKeysForDID(ctx context.Context, db KeysDatabase, did string) error {
+	return db.DeleteKeysForDID(ctx, did)
 }

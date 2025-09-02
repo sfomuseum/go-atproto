@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"iter"
+	"log/slog"
 	"net/url"
 
 	"github.com/sfomuseum/go-atproto"
@@ -47,10 +48,16 @@ func NewSQLKeysDatabase(ctx context.Context, uri string) (KeysDatabase, error) {
 		return nil, fmt.Errorf("Missing DSN string")
 	}
 
+	slog.Debug("Set up DB connection", "engine", engine, "dsn", dsn)
 	conn, err := sql.Open(engine, dsn)
 
 	if err != nil {
 		return nil, fmt.Errorf("Unable to create database (%s) because %v", engine, err)
+	}
+
+	switch engine {
+	case "sqlite3":
+		// conn.SetMaxOpenConns(1)
 	}
 
 	db := &SQLKeysDatabase{
@@ -112,6 +119,19 @@ func (db *SQLKeysDatabase) AddKey(ctx context.Context, kp *Key) error {
 	return nil
 }
 
+func (db *SQLKeysDatabase) DeleteKeysForDID(ctx context.Context, did string) error {
+
+	q := "DELETE FROM keys where did = ?"
+
+	_, err := db.conn.ExecContext(ctx, q, did)
+
+	if err != nil {
+		return fmt.Errorf("Failed to delete keys for DID, %w", err)
+	}
+
+	return nil
+}
+
 func (db *SQLKeysDatabase) DeleteKey(ctx context.Context, kp *Key) error {
 
 	q := "DELETE FROM keys where did = ? AND label = ?"
@@ -167,7 +187,9 @@ func (db *SQLKeysDatabase) ListKeys(ctx context.Context, opts *ListKeysOptions) 
 				LastModified:        lastmod,
 			}
 
-			yield(kp, nil)
+			if !yield(kp, nil) {
+				return
+			}
 		}
 
 		err = rows.Close()
