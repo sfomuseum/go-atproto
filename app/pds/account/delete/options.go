@@ -12,6 +12,7 @@ type RunOptions struct {
 	KeysDatabaseURI       string `json:"keys_database_uri"`
 	OperationsDatabaseURI string `json:"operations_database_uri"`
 	DID                   string `json:"did"`
+	Verbose               bool   `json:"verbose"`
 }
 
 func OptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, error) {
@@ -38,6 +39,7 @@ func OptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, err
 		KeysDatabaseURI:       keys_database_uri,
 		OperationsDatabaseURI: operations_database_uri,
 		DID:                   did,
+		Verbose:               verbose,
 	}
 
 	return opts, nil

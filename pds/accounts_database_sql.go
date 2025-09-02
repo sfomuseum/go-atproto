@@ -181,7 +181,7 @@ func (db *SQLAccountsDatabase) ListAccounts(ctx context.Context) iter.Seq2[*Acco
 			var created int64
 			var lastmod int64
 
-			err := rows.Scan(&did, handle, &created, &lastmod)
+			err := rows.Scan(&did, &handle, &created, &lastmod)
 
 			if err != nil {
 
