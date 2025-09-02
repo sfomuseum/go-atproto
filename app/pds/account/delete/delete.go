@@ -61,7 +61,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	logger = logger.With("cid", rsp.Operation.CID)
 
-	err = pds.DeleteAccount(ctx, accounts_db, rsp.Account)
+	err = pds.RemoveAccount(ctx, accounts_db, rsp.Account)
 
 	if err != nil {
 		logger.Error("Failed to add account to database", "error", err)

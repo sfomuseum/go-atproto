@@ -24,6 +24,10 @@ type CreateAccountResponse struct {
 	Operation *Operation
 }
 
+type RemoveAccountResponse struct {
+	Operation *Operation
+}
+
 func CreateAccount(ctx context.Context, service string, handle string) (*CreateAccountResponse, error) {
 
 	rsp, err := plc.NewDID(ctx, service, handle)
@@ -74,6 +78,10 @@ func CreateAccount(ctx context.Context, service string, handle string) (*CreateA
 	}
 
 	return acct_rsp, nil
+}
+
+func RemoveAccont(ctx context.Context) (*RemoveAccountResponse, error) {
+
 }
 
 func GetAccount(ctx context.Context, db AccountsDatabase, did string) (*Account, error) {
